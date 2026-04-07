@@ -20,6 +20,25 @@
         <KeyBinding Key="Delete" Command="{Binding DeleteSelectedCommand}"/>
         <KeyBinding Key="C" Modifiers="Control" Command="{Binding CopySelectedCommand}"/>
         <KeyBinding Key="V" Modifiers="Control" Command="{Binding PasteCommand}"/>
+        <KeyBinding Key="X" Modifiers="Control" Command="{Binding CutSelectedCommand}"/>
+        <KeyBinding Key="D" Modifiers="Control" Command="{Binding DuplicateCommand}"/>
+        <KeyBinding Key="OemPlus" Modifiers="Control" Command="{Binding ZoomInCommand}"/>
+        <KeyBinding Key="OemMinus" Modifiers="Control" Command="{Binding ZoomOutCommand}"/>
+        <KeyBinding Key="D0" Modifiers="Control" Command="{Binding FitToWindowCommand}"/>
+        <KeyBinding Key="P" Modifiers="Control" Command="{Binding PrintCommand}"/>
+        <KeyBinding Key="OemCloseBrackets" Modifiers="Control" Command="{Binding MoveLayerUpCommand}"/>
+        <KeyBinding Key="OemOpenBrackets" Modifiers="Control" Command="{Binding MoveLayerDownCommand}"/>
+        <KeyBinding Key="OemCloseBrackets" Modifiers="Control+Shift" Command="{Binding BringToFrontCommand}"/>
+        <KeyBinding Key="OemOpenBrackets" Modifiers="Control+Shift" Command="{Binding SendToBackCommand}"/>
+        <!-- Arrow keys for nudge -->
+        <KeyBinding Key="Left" Command="{Binding NudgeLeftCommand}"/>
+        <KeyBinding Key="Right" Command="{Binding NudgeRightCommand}"/>
+        <KeyBinding Key="Up" Command="{Binding NudgeUpCommand}"/>
+        <KeyBinding Key="Down" Command="{Binding NudgeDownCommand}"/>
+        <KeyBinding Key="Left" Modifiers="Shift" Command="{Binding LargeNudgeLeftCommand}"/>
+        <KeyBinding Key="Right" Modifiers="Shift" Command="{Binding LargeNudgeRightCommand}"/>
+        <KeyBinding Key="Up" Modifiers="Shift" Command="{Binding LargeNudgeUpCommand}"/>
+        <KeyBinding Key="Down" Modifiers="Shift" Command="{Binding LargeNudgeDownCommand}"/>
     </Window.InputBindings>
 
     <Grid>
@@ -86,9 +105,9 @@
                     <Separator Style="{StaticResource ToolbarSeparator}"/>
                     <Button Content="🔒 加锁" Style="{StaticResource ToolbarButton}" Command="{Binding ToggleLockCommand}"/>
                     <Separator Style="{StaticResource ToolbarSeparator}"/>
-                    <Button Content="💾 另存为" Style="{StaticResource ToolbarButton}"/>
+                    <Button Content="💾 另存为" Style="{StaticResource ToolbarButton}" Click="SaveAs_Click"/>
                     <Button Content="🔗 分享" Style="{StaticResource ToolbarButton}"/>
-                    <Button Content="👁 预览" Style="{StaticResource ToolbarButton}"/>
+                    <Button Content="👁 预览" Style="{StaticResource ToolbarButton}" Click="Preview_Click"/>
                     <Button Content="🖨 打印" Style="{StaticResource ToolbarButton}" Click="Print_Click"/>
                 </StackPanel>
             </ScrollViewer>
