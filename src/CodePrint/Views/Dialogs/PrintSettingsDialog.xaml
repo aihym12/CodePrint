@@ -1,0 +1,89 @@
+<Window x:Class="CodePrint.Views.Dialogs.PrintSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:CodePrint.ViewModels"
+        Title="打印设置" Width="520" Height="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False">
+    <Window.DataContext>
+        <vm:PrintViewModel/>
+    </Window.DataContext>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="打印机选择" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox ItemsSource="{Binding AvailablePrinters}" SelectedItem="{Binding SelectedPrinter}"/>
+                    <Button Grid.Column="1" Content="🔄" Margin="4,0,0,0" Width="32" Command="{Binding RefreshPrintersCommand}"/>
+                </Grid>
+
+                <TextBlock Text="纸张尺寸" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <TextBlock FontSize="12" Foreground="#666">
+                    <Run Text="{Binding Settings.PaperWidth}"/>
+                    <Run Text=" × "/>
+                    <Run Text="{Binding Settings.PaperHeight}"/>
+                    <Run Text=" mm"/>
+                </TextBlock>
+
+                <TextBlock Text="打印方向" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="横向" Margin="0,0,16,0"/>
+                    <RadioButton Content="纵向" IsChecked="True"/>
+                </StackPanel>
+
+                <TextBlock Text="打印份数" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <TextBox Text="{Binding Settings.Copies}" Padding="4" Width="80" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="打印范围" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel>
+                    <RadioButton Content="全部" IsChecked="True" Margin="0,0,0,4"/>
+                    <RadioButton Content="当前页" Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="自定义页码" Margin="0,0,8,0"/>
+                        <TextBox Width="100" Padding="4" Text="{Binding Settings.CustomPageRange}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Text="色彩模式" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="彩色" IsChecked="True" Margin="0,0,16,0"/>
+                    <RadioButton Content="黑白" Margin="0,0,16,0"/>
+                    <RadioButton Content="灰度"/>
+                </StackPanel>
+
+                <TextBlock Text="每页标签数" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Text="{Binding Settings.LabelsPerRow}" Width="40" Padding="4"/>
+                    <TextBlock Text=" 行 × " VerticalAlignment="Center" Margin="4,0"/>
+                    <TextBox Text="{Binding Settings.LabelsPerColumn}" Width="40" Padding="4"/>
+                    <TextBlock Text=" 列" VerticalAlignment="Center" Margin="4,0"/>
+                </StackPanel>
+
+                <Separator Margin="0,16"/>
+
+                <TextBlock Text="高级设置" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <CheckBox Content="套版打印（连续打印对齐）" Margin="0,0,0,4" IsChecked="{Binding Settings.EnableRegistrationPrint}"/>
+                <CheckBox Content="打印边框（显示裁切线）" Margin="0,0,0,4" IsChecked="{Binding Settings.ShowCutLines}"/>
+                <CheckBox Content="镜像打印" Margin="0,0,0,4" IsChecked="{Binding Settings.MirrorPrint}"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Separator Grid.Row="1" Margin="0,8"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="预览" Width="80" Padding="8,6" Margin="0,0,8,0" Command="{Binding PreviewCommand}"/>
+            <Button Content="取消" Width="80" Padding="8,6" Margin="0,0,8,0" IsCancel="True"/>
+            <Button Content="打印" Width="80" Padding="8,6" Style="{StaticResource PrimaryButton}" IsDefault="True" Command="{Binding PrintCommand}"/>
+        </StackPanel>
+    </Grid>
+</Window>

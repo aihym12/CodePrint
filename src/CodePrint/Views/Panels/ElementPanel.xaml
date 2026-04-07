@@ -1,0 +1,51 @@
+<UserControl x:Class="CodePrint.Views.Panels.ElementPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                <TextBlock Text="元素" FontSize="13" FontWeight="SemiBold" Foreground="#333" Margin="0,4,0,8"/>
+
+                <Button Style="{StaticResource ElementPanelButton}" Content="📝 文本"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Text"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="||| 条码"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Barcode"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="⊞ 二维码"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="QrCode"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="🔗 关联码"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="LinkedQrCode"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="🖼 图片"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Image"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="★ 图标"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Icon"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="━ 线条"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Line"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="▭ 矩形"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Rectangle"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="📅 日期"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Date"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="▦ 表格"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Table"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="📄 PDF"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Pdf"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="⚠ 警示语"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Warning"/>
+                <Button Style="{StaticResource ElementPanelButton}" Content="💧 水印"
+                        Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="Watermark"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>
