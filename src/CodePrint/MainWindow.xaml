@@ -203,5 +203,8 @@
 
         <!-- Photo Print View (hidden until user selects it) -->
         <panels:PhotoPrintView x:Name="PhotoPrintViewPanel" Visibility="Collapsed"/>
+
+        <!-- Label Management View (hidden until user selects 模板选择) -->
+        <panels:LabelManagementPanel x:Name="LabelManagementViewPanel" Visibility="Collapsed"/>
     </Grid>
 </Window>

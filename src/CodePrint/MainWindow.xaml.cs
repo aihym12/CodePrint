@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private HomeViewModel? _homeViewModel;
     private PdfCropViewModel? _pdfCropViewModel;
     private PhotoPrintViewModel? _photoPrintViewModel;
+    private LabelManagementViewModel? _labelManagementViewModel;
 
     public MainWindow()
     {
@@ -33,12 +34,20 @@ public partial class MainWindow : Window
         _homeViewModel.NavigateToDesigner += NavigateToDesigner;
         _homeViewModel.NavigateToPdfCrop += NavigateToPdfCrop;
         _homeViewModel.NavigateToPhotoPrint += NavigateToPhotoPrint;
+        _homeViewModel.NavigateToTemplateLibrary += NavigateToLabelManagement;
     }
 
     private void NavigateToDesigner(LabelDocument document)
     {
         _designerViewModel.CurrentDocument = document;
         _designerViewModel.RefreshDocumentProperties();
+
+        // 如果文档已存储，设置文件路径以便保存时覆盖
+        if (LabelStorageService.Exists(document.Id))
+            _designerViewModel.CurrentFilePath = "__storage__:" + document.Id;
+        else
+            _designerViewModel.CurrentFilePath = null;
+
         DesignerView.DataContext = _designerViewModel;
         ShowView("Designer");
     }
@@ -57,12 +66,43 @@ public partial class MainWindow : Window
         ShowView("PhotoPrint");
     }
 
+    private void NavigateToLabelManagement()
+    {
+        _labelManagementViewModel = (LabelManagementViewModel)LabelManagementViewPanel.DataContext;
+        _labelManagementViewModel.NavigateBack -= OnLabelManagementBack;
+        _labelManagementViewModel.NavigateBack += OnLabelManagementBack;
+        _labelManagementViewModel.RequestEditLabel -= OnEditLabel;
+        _labelManagementViewModel.RequestEditLabel += OnEditLabel;
+        _labelManagementViewModel.RequestPrintLabel -= OnPrintLabel;
+        _labelManagementViewModel.RequestPrintLabel += OnPrintLabel;
+        _labelManagementViewModel.LoadLabels();
+        ShowView("LabelManagement");
+    }
+
+    private void OnLabelManagementBack()
+    {
+        ShowView("Home");
+    }
+
+    private void OnEditLabel(LabelDocument document)
+    {
+        NavigateToDesigner(document);
+    }
+
+    private void OnPrintLabel(LabelDocument document)
+    {
+        var dialog = new PrintSettingsDialog { Owner = this };
+        dialog.SetDocument(document);
+        dialog.ShowDialog();
+    }
+
     private void ShowView(string view)
     {
         HomePageView.Visibility = view == "Home" ? Visibility.Visible : Visibility.Collapsed;
         DesignerView.Visibility = view == "Designer" ? Visibility.Visible : Visibility.Collapsed;
         PdfCropViewPanel.Visibility = view == "PdfCrop" ? Visibility.Visible : Visibility.Collapsed;
         PhotoPrintViewPanel.Visibility = view == "PhotoPrint" ? Visibility.Visible : Visibility.Collapsed;
+        LabelManagementViewPanel.Visibility = view == "LabelManagement" ? Visibility.Visible : Visibility.Collapsed;
 
         // Only apply designer keyboard shortcuts when the designer is visible
         if (view == "Designer")
@@ -107,7 +147,18 @@ public partial class MainWindow : Window
 
     private void BackToHome_Click(object sender, RoutedEventArgs e)
     {
+        // 返回主页前自动保存当前文档到本地存储
+        SaveCurrentDocumentToStorage();
         ShowView("Home");
+    }
+
+    /// <summary>将当前设计器文档保存到本地标签存储。</summary>
+    private void SaveCurrentDocumentToStorage()
+    {
+        if (_designerViewModel.CurrentDocument != null)
+        {
+            LabelStorageService.Save(_designerViewModel.CurrentDocument);
+        }
     }
 
     // ── Designer Dialog Handlers ──

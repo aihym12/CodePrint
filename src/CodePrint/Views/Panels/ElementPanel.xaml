@@ -8,43 +8,69 @@
 
                 <Button Style="{StaticResource ElementPanelButton}" Content="📝 文本"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Text"/>
+                        CommandParameter="Text"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="||| 条码"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Barcode"/>
+                        CommandParameter="Barcode"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="⊞ 二维码"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="QrCode"/>
+                        CommandParameter="QrCode"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="🔗 关联码"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="LinkedQrCode"/>
+                        CommandParameter="LinkedQrCode"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="🖼 图片"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Image"/>
+                        CommandParameter="Image"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="★ 图标"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Icon"/>
+                        CommandParameter="Icon"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="━ 线条"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Line"/>
+                        CommandParameter="Line"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="▭ 矩形"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Rectangle"/>
+                        CommandParameter="Rectangle"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="📅 日期"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Date"/>
+                        CommandParameter="Date"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="▦ 表格"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Table"/>
+                        CommandParameter="Table"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="📄 PDF"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Pdf"/>
+                        CommandParameter="Pdf"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="⚠ 警示语"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Warning"/>
+                        CommandParameter="Warning"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="💧 水印"
                         Command="{Binding DataContext.AddElementCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="Watermark"/>
+                        CommandParameter="Watermark"
+                        PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
             </StackPanel>
         </ScrollViewer>
     </Border>

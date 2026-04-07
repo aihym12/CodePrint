@@ -8,6 +8,41 @@
         <vm:PdfCropViewModel/>
     </UserControl.DataContext>
 
+    <UserControl.Resources>
+        <!-- Paper size radio button style -->
+        <Style x:Key="PaperSizeRadio" TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Density toggle button style -->
+        <Style x:Key="DensityToggle" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
+                                CornerRadius="4" Padding="12,4" Cursor="Hand" MinWidth="40">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6D00"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                                <Setter Property="Foreground" Value="#FF6D00"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFF8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="44"/>
@@ -35,8 +70,11 @@
             </Grid>
         </Border>
 
-        <!-- Main Content -->
-        <Grid Grid.Row="1">
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- STEP 1: File Selection & Processing Mode           -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <Grid Grid.Row="1"
+              Visibility="{Binding IsNextStepVisible, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280"/>
                 <ColumnDefinition Width="*"/>
@@ -46,62 +84,19 @@
             <Border Grid.Column="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
                     <StackPanel>
-                        <!-- Select PDF Button -->
                         <Button Content="📁 选择PDF文件" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch"
                                 Margin="0,0,0,20" Click="SelectPdf_Click"/>
 
-                        <!-- Processing Mode Selection -->
                         <TextBlock Text="处理模式" FontSize="14" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,12"/>
 
                         <!-- Mode 1: Page Crop -->
                         <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <StackPanel>
-                                <RadioButton x:Name="PageCropRadio" GroupName="ProcessingMode" IsChecked="True"
+                                <RadioButton x:Name="PageCropRadio" GroupName="ProcessingMode"
                                              Checked="PageCropMode_Checked" Margin="0,0,0,4">
                                     <TextBlock Text="● 页面裁剪" FontSize="13" FontWeight="SemiBold"/>
                                 </RadioButton>
                                 <TextBlock Text="裁剪文档页面大小" Foreground="#666" FontSize="11" Margin="20,0,0,4"/>
-
-                                <!-- Auto / Manual sub-options -->
-                                <StackPanel Margin="20,4,0,0"
-                                            Visibility="{Binding ElementName=PageCropRadio, Path=IsChecked, Converter={StaticResource BoolToVisibility}}">
-                                    <RadioButton x:Name="AutoCropRadio" GroupName="CropMode" Content="自动裁剪" IsChecked="True"
-                                                 FontSize="12" Margin="0,0,0,4" Checked="AutoCrop_Checked"/>
-                                    <TextBlock Text="自动检测内容边界并去除空白" Foreground="#999" FontSize="10" Margin="18,0,0,4"/>
-
-                                    <RadioButton x:Name="ManualCropRadio" GroupName="CropMode" Content="手动裁剪"
-                                                 FontSize="12" Margin="0,4,0,4" Checked="ManualCrop_Checked"/>
-                                    <TextBlock Text="拖拽裁剪框选择区域" Foreground="#999" FontSize="10" Margin="18,0,0,0"/>
-
-                                    <!-- Manual crop fields (visible when ManualCropRadio is checked) -->
-                                    <StackPanel Margin="18,8,0,0"
-                                                Visibility="{Binding ElementName=ManualCropRadio, Path=IsChecked, Converter={StaticResource BoolToVisibility}}">
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="30"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="x:" VerticalAlignment="Center" FontSize="11"/>
-                                            <TextBox Grid.Column="1" Text="{Binding CropX}" FontSize="11" Padding="4,2" Margin="0,0,8,0"/>
-                                            <TextBlock Grid.Column="2" Text="y:" VerticalAlignment="Center" FontSize="11"/>
-                                            <TextBox Grid.Column="3" Text="{Binding CropY}" FontSize="11" Padding="4,2"/>
-                                        </Grid>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="30"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="宽:" VerticalAlignment="Center" FontSize="11"/>
-                                            <TextBox Grid.Column="1" Text="{Binding CropWidth}" FontSize="11" Padding="4,2" Margin="0,0,8,0"/>
-                                            <TextBlock Grid.Column="2" Text="高:" VerticalAlignment="Center" FontSize="11"/>
-                                            <TextBox Grid.Column="3" Text="{Binding CropHeight}" FontSize="11" Padding="4,2"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -113,47 +108,6 @@
                                     <TextBlock Text="○ 标签分割" FontSize="13" FontWeight="SemiBold"/>
                                 </RadioButton>
                                 <TextBlock Text="将一个页面分割成多个标签" Foreground="#666" FontSize="11" Margin="20,0,0,0"/>
-
-                                <!-- Split settings -->
-                                <StackPanel Margin="20,8,0,0"
-                                            Visibility="{Binding ElementName=LabelSplitRadio, Path=IsChecked, Converter={StaticResource BoolToVisibility}}">
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="50"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="行数：" VerticalAlignment="Center" FontSize="11"/>
-                                        <TextBox Grid.Column="1" Text="{Binding SplitRows}" FontSize="11" Padding="4,2"/>
-                                    </Grid>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="50"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="列数：" VerticalAlignment="Center" FontSize="11"/>
-                                        <TextBox Grid.Column="1" Text="{Binding SplitColumns}" FontSize="11" Padding="4,2"/>
-                                    </Grid>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="50"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="25"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="间距：" VerticalAlignment="Center" FontSize="11"/>
-                                        <TextBox Grid.Column="1" Text="{Binding SplitGapMm}" FontSize="11" Padding="4,2"/>
-                                        <TextBlock Grid.Column="2" Text="mm" VerticalAlignment="Center" FontSize="10" Foreground="#999" Margin="4,0,0,0"/>
-                                    </Grid>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="50"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="25"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="边距：" VerticalAlignment="Center" FontSize="11"/>
-                                        <TextBox Grid.Column="1" Text="{Binding SplitMarginMm}" FontSize="11" Padding="4,2"/>
-                                        <TextBlock Grid.Column="2" Text="mm" VerticalAlignment="Center" FontSize="10" Foreground="#999" Margin="4,0,0,0"/>
-                                    </Grid>
-                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -168,14 +122,13 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Next Step -->
                         <Button Content="下一步 →" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch"
                                 Command="{Binding GoToNextStepCommand}"/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
 
-            <!-- Right Panel: Preview Area -->
+            <!-- Right Panel: Preview Area (Step 1) -->
             <Grid Grid.Column="1" Background="#F0F0F0">
                 <!-- Empty state -->
                 <Border Background="White" CornerRadius="8" Margin="40" Effect="{StaticResource CardShadow}"
@@ -188,19 +141,178 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Loaded state -->
+                <!-- Loaded state with rendered preview -->
                 <Border Background="White" CornerRadius="8" Margin="40" Effect="{StaticResource CardShadow}"
                         Visibility="{Binding IsFileLoaded, Converter={StaticResource BoolToVisibility}}">
                     <Grid>
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="📄" FontSize="48" HorizontalAlignment="Center"/>
-                            <TextBlock Text="{Binding PdfFilePath}" FontSize="12" Foreground="#666"
-                                       HorizontalAlignment="Center" Margin="0,12,0,0" TextTrimming="CharacterEllipsis" MaxWidth="400"/>
-                            <TextBlock Text="PDF预览区域" FontSize="13" Foreground="#999"
-                                       HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Image Source="{Binding PreviewImage}" Stretch="Uniform" Margin="20"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                        <!-- Page navigation -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                            <Button Content="◀ 上一页" Style="{StaticResource ToolbarButton}" Padding="8,4"
+                                    Command="{Binding PreviousPageCommand}"/>
+                            <TextBlock Text="{Binding PageInfoText}" VerticalAlignment="Center" Margin="12,0"
+                                       FontSize="12" Foreground="#666"/>
+                            <Button Content="下一页 ▶" Style="{StaticResource ToolbarButton}" Padding="8,4"
+                                    Command="{Binding NextPageCommand}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- STEP 2: Paper Size, Density & Print                -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <Grid Grid.Row="1"
+              Visibility="{Binding IsNextStepVisible, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Print Settings -->
+            <Border Grid.Column="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
+                    <StackPanel>
+                        <!-- Paper size selection -->
+                        <TextBlock Text="设置纸张尺寸" FontSize="14" FontWeight="SemiBold" Foreground="#4A90D9" Margin="0,0,0,16"/>
+
+                        <RadioButton Style="{StaticResource PaperSizeRadio}" GroupName="PaperSize"
+                                     Tag="0" Checked="PaperSize_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="100*100mm" FontSize="13"/>
+                                <TextBlock Text=" ✏" FontSize="11" Foreground="#999" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <RadioButton Style="{StaticResource PaperSizeRadio}" GroupName="PaperSize"
+                                     Tag="1" Checked="PaperSize_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="100*150mm" FontSize="13"/>
+                                <TextBlock Text=" ✏" FontSize="11" Foreground="#999" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <RadioButton Style="{StaticResource PaperSizeRadio}" GroupName="PaperSize"
+                                     Tag="2" Checked="PaperSize_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="58*40mm" FontSize="13"/>
+                                <TextBlock Text=" ✏" FontSize="11" Foreground="#999" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <RadioButton Style="{StaticResource PaperSizeRadio}" GroupName="PaperSize"
+                                     Tag="3" Checked="PaperSize_Checked">
+                            <TextBlock Text="自定义大小" FontSize="13"/>
+                        </RadioButton>
+
+                        <!-- Custom size inputs -->
+                        <StackPanel Margin="24,0,0,8"
+                                    Visibility="{Binding IsCustomSize, Converter={StaticResource BoolToVisibility}}">
+                            <Grid Margin="0,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="宽:" VerticalAlignment="Center" FontSize="11"/>
+                                <TextBox Grid.Column="1" Text="{Binding CustomWidthMm, UpdateSourceTrigger=PropertyChanged}" FontSize="11" Padding="4,2"/>
+                                <TextBlock Grid.Column="2" Text="mm" VerticalAlignment="Center" FontSize="10" Foreground="#999" Margin="4,0,0,0"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="高:" VerticalAlignment="Center" FontSize="11"/>
+                                <TextBox Grid.Column="1" Text="{Binding CustomHeightMm, UpdateSourceTrigger=PropertyChanged}" FontSize="11" Padding="4,2"/>
+                                <TextBlock Grid.Column="2" Text="mm" VerticalAlignment="Center" FontSize="10" Foreground="#999" Margin="4,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Print layout -->
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="打印排数" VerticalAlignment="Center" FontSize="13" Margin="0,0,12,0"/>
+                            <ComboBox Grid.Column="1" SelectedIndex="{Binding PrintLayoutIndex}" FontSize="12" Padding="6,4">
+                                <ComboBoxItem Content="单排(一行一个标签)"/>
+                                <ComboBoxItem Content="双排(一行两个标签)"/>
+                                <ComboBoxItem Content="三排(一行三个标签)"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <!-- Apply to all pages -->
+                        <CheckBox IsChecked="{Binding ApplyCropToAllPages}" Margin="0,16,0,0" FontSize="12">
+                            <TextBlock Text="当前裁剪范围应用到所有页面" Foreground="#4A90D9"/>
+                        </CheckBox>
+
+                        <!-- Image density -->
+                        <TextBlock Text="画质浓度" FontSize="13" Margin="0,20,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource DensityToggle}" GroupName="Density"
+                                         Content="自适应" Tag="Auto" Checked="Density_Checked"/>
+                            <RadioButton Style="{StaticResource DensityToggle}" GroupName="Density"
+                                         Content="淡" Tag="Light" Checked="Density_Checked"/>
+                            <RadioButton Style="{StaticResource DensityToggle}" GroupName="Density"
+                                         Content="中" Tag="Medium" Checked="Density_Checked"/>
+                            <RadioButton Style="{StaticResource DensityToggle}" GroupName="Density"
+                                         Content="浓" Tag="Dark" Checked="Density_Checked"/>
+                        </StackPanel>
+
+                        <!-- Spacer to push buttons to bottom -->
+                        <Grid Height="40"/>
+
+                        <!-- Step 2 bottom buttons -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="上一步" HorizontalAlignment="Stretch"
+                                    FontSize="13" Padding="0,8" Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
+                                    Cursor="Hand" Command="{Binding GoToPreviousStepCommand}"/>
+                            <Button Grid.Column="2" Content="打 印" Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch" Padding="0,8"
+                                    Command="{Binding PrintCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Right Panel: Preview (Step 2) -->
+            <Grid Grid.Column="1" Background="#F0F0F0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- PDF preview image -->
+                <Border Background="White" CornerRadius="8" Margin="30" Effect="{StaticResource CardShadow}">
+                    <Image Source="{Binding PreviewImage}" Stretch="Uniform" Margin="16"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                </Border>
+
+                <!-- Page navigation bar -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                    <Button Content="◀ 上一页" Style="{StaticResource ToolbarButton}" Padding="10,6"
+                            Command="{Binding PreviousPageCommand}"/>
+                    <TextBlock Text="{Binding PageInfoText}" VerticalAlignment="Center" Margin="16,0"
+                               FontSize="13" Foreground="#666"/>
+                    <Button Content="下一页 ▶" Style="{StaticResource ToolbarButton}" Padding="10,6"
+                            Command="{Binding NextPageCommand}"/>
+                </StackPanel>
             </Grid>
         </Grid>
 

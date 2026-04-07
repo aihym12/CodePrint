@@ -10,9 +10,72 @@ public partial class PdfCropView : UserControl
     public PdfCropView()
     {
         InitializeComponent();
+        Loaded += PdfCropView_Loaded;
     }
 
     private PdfCropViewModel ViewModel => (PdfCropViewModel)DataContext;
+
+    private void PdfCropView_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Restore processing mode radio buttons from persisted settings
+        switch (ViewModel.ProcessingMode)
+        {
+            case PdfProcessingMode.PageCrop:
+                PageCropRadio.IsChecked = true;
+                break;
+            case PdfProcessingMode.LabelSplit:
+                LabelSplitRadio.IsChecked = true;
+                break;
+            case PdfProcessingMode.None:
+                NoneRadio.IsChecked = true;
+                break;
+        }
+
+        // Restore paper size radio buttons
+        RestorePaperSizeRadio();
+
+        // Restore density radio buttons
+        RestoreDensityRadio();
+    }
+
+    private void RestorePaperSizeRadio()
+    {
+        var tag = ViewModel.SelectedPaperSizeIndex.ToString();
+        foreach (var rb in FindVisualChildren<RadioButton>(this))
+        {
+            if (rb.GroupName == "PaperSize" && rb.Tag is string t && t == tag)
+            {
+                rb.IsChecked = true;
+                break;
+            }
+        }
+    }
+
+    private void RestoreDensityRadio()
+    {
+        var tag = ViewModel.ImageDensity.ToString();
+        foreach (var rb in FindVisualChildren<RadioButton>(this))
+        {
+            if (rb.GroupName == "Density" && rb.Tag is string t && t == tag)
+            {
+                rb.IsChecked = true;
+                break;
+            }
+        }
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T t)
+                yield return t;
+            foreach (var sub in FindVisualChildren<T>(child))
+                yield return sub;
+        }
+    }
 
     private void SelectPdf_Click(object sender, RoutedEventArgs e)
     {
@@ -74,15 +137,15 @@ public partial class PdfCropView : UserControl
             vm.ProcessingMode = PdfProcessingMode.None;
     }
 
-    private void AutoCrop_Checked(object sender, RoutedEventArgs e)
+    private void PaperSize_Checked(object sender, RoutedEventArgs e)
     {
-        if (DataContext is PdfCropViewModel vm)
-            vm.CropMode = CropMode.Auto;
+        if (sender is RadioButton rb && rb.Tag is string tag && DataContext is PdfCropViewModel vm)
+            vm.SetPaperSizeCommand.Execute(tag);
     }
 
-    private void ManualCrop_Checked(object sender, RoutedEventArgs e)
+    private void Density_Checked(object sender, RoutedEventArgs e)
     {
-        if (DataContext is PdfCropViewModel vm)
-            vm.CropMode = CropMode.Manual;
+        if (sender is RadioButton rb && rb.Tag is string tag && DataContext is PdfCropViewModel vm)
+            vm.SetDensityCommand.Execute(tag);
     }
 }

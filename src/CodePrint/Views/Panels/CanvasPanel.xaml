@@ -16,9 +16,12 @@
                     <Canvas x:Name="DesignCanvas" Width="189" Height="113"
                             Background="{Binding CurrentDocument.BackgroundColor, Converter={StaticResource ColorToBrush}}"
                             ClipToBounds="True"
+                            AllowDrop="True"
                             MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
                             MouseMove="Canvas_MouseMove"
-                            MouseLeftButtonUp="Canvas_MouseLeftButtonUp">
+                            MouseLeftButtonUp="Canvas_MouseLeftButtonUp"
+                            Drop="Canvas_Drop"
+                            DragOver="Canvas_DragOver">
 
                         <!-- Context Menu -->
                         <Canvas.ContextMenu>

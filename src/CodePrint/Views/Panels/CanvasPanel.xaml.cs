@@ -24,6 +24,10 @@ public partial class CanvasPanel : UserControl
     // Selection adorner rectangles
     private readonly List<Rectangle> _selectionHandles = new();
 
+    // Inline editing state
+    private TextBox? _inlineEditor;
+    private LabelElement? _editingElement;
+
     public CanvasPanel()
     {
         InitializeComponent();
@@ -139,7 +143,7 @@ public partial class CanvasPanel : UserControl
             : Visibility.Collapsed;
     }
 
-    // ── Selection ──
+    // ── Selection & Double-Click ──
 
     private void ElementVisual_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -150,6 +154,14 @@ public partial class CanvasPanel : UserControl
 
         var element = ViewModel.CurrentDocument.Elements.FirstOrDefault(el => el.Id == elementId);
         if (element == null) return;
+
+        // Double-click on text element → enter inline editing
+        if (e.ClickCount == 2 && element is TextElement textEl)
+        {
+            StartInlineEditing(textEl);
+            e.Handled = true;
+            return;
+        }
 
         ViewModel.SelectedElement = element;
         UpdateSelectionVisuals();
@@ -171,13 +183,47 @@ public partial class CanvasPanel : UserControl
 
     private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Click on empty canvas area → deselect
-        if (ViewModel != null)
+        // Commit any active inline editing first
+        CommitInlineEditing();
+
+        if (ViewModel == null) return;
+
+        // Double-click on empty canvas → add text element at click position
+        if (e.ClickCount == 2)
         {
-            ViewModel.SelectedElement = null;
-            ViewModel.SelectedElements.Clear();
-            ClearSelectionHandles();
+            var pos = e.GetPosition(DesignCanvas);
+            var xMm = pos.X / MmToPx;
+            var yMm = pos.Y / MmToPx;
+
+            ViewModel.AddElementCommand.Execute("Text");
+            // Move the newly created element to click position
+            if (ViewModel.SelectedElement != null)
+            {
+                ViewModel.SelectedElement.X = xMm;
+                ViewModel.SelectedElement.Y = yMm;
+
+                // Update visual position
+                if (_elementVisuals.TryGetValue(ViewModel.SelectedElement.Id, out var visual))
+                {
+                    Canvas.SetLeft(visual, xMm * MmToPx);
+                    Canvas.SetTop(visual, yMm * MmToPx);
+                }
+                UpdateSelectionVisuals();
+
+                // Immediately start inline editing on the new text element
+                if (ViewModel.SelectedElement is TextElement newTextEl)
+                {
+                    StartInlineEditing(newTextEl);
+                }
+            }
+            e.Handled = true;
+            return;
         }
+
+        // Single click on empty area → deselect
+        ViewModel.SelectedElement = null;
+        ViewModel.SelectedElements.Clear();
+        ClearSelectionHandles();
     }
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
@@ -211,6 +257,192 @@ public partial class CanvasPanel : UserControl
         }
 
         _isDragging = false;
+    }
+
+    // ── Drag & Drop from ElementPanel ──
+
+    private void Canvas_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("ElementType"))
+        {
+            e.Effects = DragDropEffects.Copy;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+        e.Handled = true;
+    }
+
+    private void Canvas_Drop(object sender, DragEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        if (e.Data.GetDataPresent("ElementType"))
+        {
+            var elementType = (string)e.Data.GetData("ElementType");
+            var pos = e.GetPosition(DesignCanvas);
+            var xMm = pos.X / MmToPx;
+            var yMm = pos.Y / MmToPx;
+
+            ViewModel.AddElementCommand.Execute(elementType);
+
+            // Move the newly created element to the drop position
+            if (ViewModel.SelectedElement != null)
+            {
+                ViewModel.SelectedElement.X = xMm;
+                ViewModel.SelectedElement.Y = yMm;
+
+                if (_elementVisuals.TryGetValue(ViewModel.SelectedElement.Id, out var visual))
+                {
+                    Canvas.SetLeft(visual, xMm * MmToPx);
+                    Canvas.SetTop(visual, yMm * MmToPx);
+                }
+                UpdateSelectionVisuals();
+            }
+        }
+    }
+
+    // ── Inline Text Editing ──
+
+    private void StartInlineEditing(TextElement textElement)
+    {
+        // If already editing, commit first
+        CommitInlineEditing();
+
+        _editingElement = textElement;
+
+        // Find and hide the element visual
+        if (!_elementVisuals.TryGetValue(textElement.Id, out var visual)) return;
+        visual.Visibility = Visibility.Collapsed;
+
+        // Create an editable TextBox overlay at the same position
+        _inlineEditor = new TextBox
+        {
+            Text = textElement.Content,
+            FontFamily = new FontFamily(textElement.FontFamily),
+            FontSize = textElement.FontSize,
+            FontWeight = textElement.IsBold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = textElement.IsItalic ? FontStyles.Italic : FontStyles.Normal,
+            Foreground = BrushFromHex(textElement.ForegroundColor),
+            Background = textElement.BackgroundColor == "Transparent"
+                ? Brushes.Transparent
+                : BrushFromHex(textElement.BackgroundColor),
+            Width = textElement.Width * MmToPx,
+            MinHeight = textElement.Height * MmToPx,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4A90D9")),
+            Padding = new Thickness(2),
+            VerticalContentAlignment = VerticalAlignment.Top
+        };
+
+        Canvas.SetLeft(_inlineEditor, textElement.X * MmToPx);
+        Canvas.SetTop(_inlineEditor, textElement.Y * MmToPx);
+        Panel.SetZIndex(_inlineEditor, int.MaxValue - 1);
+
+        _inlineEditor.LostFocus += InlineEditor_LostFocus;
+        _inlineEditor.KeyDown += InlineEditor_KeyDown;
+
+        DesignCanvas.Children.Add(_inlineEditor);
+
+        // Focus and select all text
+        _inlineEditor.Focus();
+        _inlineEditor.SelectAll();
+    }
+
+    private void InlineEditor_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            // Cancel editing (discard changes)
+            CancelInlineEditing();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            // Commit editing on Enter (Shift+Enter for newline)
+            CommitInlineEditing();
+            e.Handled = true;
+        }
+    }
+
+    private void InlineEditor_LostFocus(object sender, RoutedEventArgs e)
+    {
+        CommitInlineEditing();
+    }
+
+    private void CommitInlineEditing()
+    {
+        if (_inlineEditor == null || _editingElement is not TextElement textEl) return;
+
+        // Save the text back to the element model
+        var newText = _inlineEditor.Text;
+        if (!string.IsNullOrEmpty(newText))
+        {
+            textEl.Content = newText;
+        }
+
+        CleanupInlineEditor();
+
+        // Re-render the element visual with updated text
+        RefreshElementVisual(textEl);
+    }
+
+    private void CancelInlineEditing()
+    {
+        if (_inlineEditor == null || _editingElement == null) return;
+
+        CleanupInlineEditor();
+
+        // Show the original visual again without changes
+        if (_elementVisuals.TryGetValue(_editingElement.Id, out var visual))
+        {
+            visual.Visibility = Visibility.Visible;
+        }
+
+        _editingElement = null;
+    }
+
+    private void CleanupInlineEditor()
+    {
+        if (_inlineEditor != null)
+        {
+            _inlineEditor.LostFocus -= InlineEditor_LostFocus;
+            _inlineEditor.KeyDown -= InlineEditor_KeyDown;
+            DesignCanvas.Children.Remove(_inlineEditor);
+            _inlineEditor = null;
+        }
+        _editingElement = null;
+    }
+
+    private void RefreshElementVisual(LabelElement element)
+    {
+        // Remove old visual
+        if (_elementVisuals.TryGetValue(element.Id, out var oldVisual))
+        {
+            oldVisual.MouseLeftButtonDown -= ElementVisual_MouseLeftButtonDown;
+            DesignCanvas.Children.Remove(oldVisual);
+            _elementVisuals.Remove(element.Id);
+        }
+
+        // Re-add with updated data
+        AddElementVisual(element);
+        UpdateSelectionVisuals();
+    }
+
+    private static SolidColorBrush BrushFromHex(string hex)
+    {
+        try
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            return new SolidColorBrush(color);
+        }
+        catch
+        {
+            return Brushes.Black;
+        }
     }
 
     // ── Selection Handles ──

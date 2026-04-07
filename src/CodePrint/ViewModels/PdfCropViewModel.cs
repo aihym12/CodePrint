@@ -1,8 +1,12 @@
+using System.IO;
 using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CodePrint.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -11,13 +15,8 @@ namespace CodePrint.ViewModels;
 /// <summary>Processing mode for PDF crop and print.</summary>
 public enum PdfProcessingMode
 {
-    /// <summary>Crop pages by auto-detecting content boundaries or manual selection.</summary>
     PageCrop,
-
-    /// <summary>Split a single page into multiple label units.</summary>
     LabelSplit,
-
-    /// <summary>No processing — print PDF at original size.</summary>
     None
 }
 
@@ -28,11 +27,30 @@ public enum CropMode
     Manual
 }
 
-/// <summary>ViewModel for the PDF Crop &amp; Print module (PRD Section 10).</summary>
+/// <summary>Image density level for print output.</summary>
+public enum DensityLevel
+{
+    Auto,
+    Light,
+    Medium,
+    Dark
+}
+
+/// <summary>ViewModel for the PDF Crop &amp; Print module.</summary>
 public partial class PdfCropViewModel : ObservableObject
 {
-    /// <summary>Raised when user clicks Back to return to the home page.</summary>
+    private readonly PdfRenderService _pdfService = new();
+    private bool _isInitializing = true;
+
     public event Action? NavigateBack;
+
+    public PdfCropViewModel()
+    {
+        LoadSettings();
+        _isInitializing = false;
+    }
+
+    // ── File state ──
 
     [ObservableProperty]
     private string? _pdfFilePath;
@@ -41,7 +59,19 @@ public partial class PdfCropViewModel : ObservableObject
     private bool _isFileLoaded;
 
     [ObservableProperty]
+    private BitmapSource? _previewImage;
+
+    // ── Step tracking ──
+
+    [ObservableProperty]
+    private bool _isNextStepVisible;
+
+    // ── Processing mode (step 1) ──
+
+    [ObservableProperty]
     private PdfProcessingMode _processingMode = PdfProcessingMode.PageCrop;
+
+    partial void OnProcessingModeChanged(PdfProcessingMode value) => SaveSettings();
 
     [ObservableProperty]
     private CropMode _cropMode = CropMode.Auto;
@@ -74,22 +104,138 @@ public partial class PdfCropViewModel : ObservableObject
     [ObservableProperty]
     private double _cropHeight = 30;
 
-    // ── Print settings (after "Next") ──
+    // ── Page navigation ──
 
     [ObservableProperty]
-    private string _pageRange = "全部";
+    private int _currentPageIndex;
 
     [ObservableProperty]
-    private int _copies = 1;
+    private int _totalPages;
+
+    public string PageInfoText => TotalPages > 0
+        ? $"{CurrentPageIndex + 1}/{TotalPages}页"
+        : "0/0页";
+
+    partial void OnCurrentPageIndexChanged(int value) => OnPropertyChanged(nameof(PageInfoText));
+    partial void OnTotalPagesChanged(int value) => OnPropertyChanged(nameof(PageInfoText));
+
+    // ── Paper size (step 2) ──
 
     [ObservableProperty]
-    private bool _isNextStepVisible;
+    private int _selectedPaperSizeIndex;
+
+    partial void OnSelectedPaperSizeIndexChanged(int value) => SaveSettings();
+
+    [ObservableProperty]
+    private double _paperWidthMm = 100;
+
+    partial void OnPaperWidthMmChanged(double value) => SaveSettings();
+
+    [ObservableProperty]
+    private double _paperHeightMm = 100;
+
+    partial void OnPaperHeightMmChanged(double value) => SaveSettings();
+
+    [ObservableProperty]
+    private bool _isCustomSize;
+
+    partial void OnIsCustomSizeChanged(bool value) => SaveSettings();
+
+    [ObservableProperty]
+    private double _customWidthMm = 80;
+
+    partial void OnCustomWidthMmChanged(double value)
+    {
+        if (IsCustomSize)
+            PaperWidthMm = value;
+        SaveSettings();
+    }
+
+    [ObservableProperty]
+    private double _customHeightMm = 60;
+
+    partial void OnCustomHeightMmChanged(double value)
+    {
+        if (IsCustomSize)
+            PaperHeightMm = value;
+        SaveSettings();
+    }
+
+    // ── Print layout ──
+
+    [ObservableProperty]
+    private int _printLayoutIndex;
+
+    partial void OnPrintLayoutIndexChanged(int value) => SaveSettings();
+
+    [ObservableProperty]
+    private bool _applyCropToAllPages = true;
+
+    partial void OnApplyCropToAllPagesChanged(bool value) => SaveSettings();
+
+    // ── Image density ──
+
+    [ObservableProperty]
+    private DensityLevel _imageDensity = DensityLevel.Auto;
+
+    partial void OnImageDensityChanged(DensityLevel value)
+    {
+        SaveSettings();
+        // Re-render preview at new density when file is loaded
+        if (IsFileLoaded && IsNextStepVisible)
+            _ = RenderCurrentPageAsync();
+    }
+
+    // ── Last printer (persisted but not displayed in this VM) ──
+
+    public string? LastPrinterName { get; set; }
+
+    // ── Status ──
 
     [ObservableProperty]
     private string _statusText = "请选择或拖入PDF文件";
 
+    // ── Settings persistence ──
+
+    private void LoadSettings()
+    {
+        var s = PdfCropSettingsService.Load();
+        _selectedPaperSizeIndex = s.SelectedPaperSizeIndex;
+        _paperWidthMm = s.PaperWidthMm;
+        _paperHeightMm = s.PaperHeightMm;
+        _isCustomSize = s.IsCustomSize;
+        _customWidthMm = s.CustomWidthMm;
+        _customHeightMm = s.CustomHeightMm;
+        _printLayoutIndex = s.PrintLayoutIndex;
+        _applyCropToAllPages = s.ApplyCropToAllPages;
+        _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Auto;
+        _processingMode = Enum.TryParse<PdfProcessingMode>(s.ProcessingMode, out var m) ? m : PdfProcessingMode.PageCrop;
+        LastPrinterName = s.LastPrinterName;
+    }
+
+    private void SaveSettings()
+    {
+        if (_isInitializing) return;
+        PdfCropSettingsService.Save(new PdfCropSettings
+        {
+            SelectedPaperSizeIndex = SelectedPaperSizeIndex,
+            PaperWidthMm = PaperWidthMm,
+            PaperHeightMm = PaperHeightMm,
+            IsCustomSize = IsCustomSize,
+            CustomWidthMm = CustomWidthMm,
+            CustomHeightMm = CustomHeightMm,
+            PrintLayoutIndex = PrintLayoutIndex,
+            ApplyCropToAllPages = ApplyCropToAllPages,
+            ImageDensity = ImageDensity.ToString(),
+            ProcessingMode = ProcessingMode.ToString(),
+            LastPrinterName = LastPrinterName
+        });
+    }
+
+    // ── Commands ──
+
     [RelayCommand]
-    private void GoToNextStep()
+    private async Task GoToNextStep()
     {
         if (!IsFileLoaded)
         {
@@ -97,6 +243,13 @@ public partial class PdfCropViewModel : ObservableObject
             return;
         }
         IsNextStepVisible = true;
+        await RenderCurrentPageAsync();
+    }
+
+    [RelayCommand]
+    private void GoToPreviousStep()
+    {
+        IsNextStepVisible = false;
     }
 
     [RelayCommand]
@@ -108,37 +261,197 @@ public partial class PdfCropViewModel : ObservableObject
         }
         else
         {
+            _pdfService.Close();
             NavigateBack?.Invoke();
         }
     }
 
     [RelayCommand]
-    private void Print()
+    private async Task PreviousPage()
     {
-        if (!IsFileLoaded || string.IsNullOrEmpty(PdfFilePath))
+        if (CurrentPageIndex > 0)
+        {
+            CurrentPageIndex--;
+            await RenderCurrentPageAsync();
+        }
+    }
+
+    [RelayCommand]
+    private async Task NextPage()
+    {
+        if (CurrentPageIndex < TotalPages - 1)
+        {
+            CurrentPageIndex++;
+            await RenderCurrentPageAsync();
+        }
+    }
+
+    [RelayCommand]
+    private void SetPaperSize(string tag)
+    {
+        switch (tag)
+        {
+            case "0":
+                SelectedPaperSizeIndex = 0;
+                PaperWidthMm = 100; PaperHeightMm = 100;
+                IsCustomSize = false;
+                break;
+            case "1":
+                SelectedPaperSizeIndex = 1;
+                PaperWidthMm = 100; PaperHeightMm = 150;
+                IsCustomSize = false;
+                break;
+            case "2":
+                SelectedPaperSizeIndex = 2;
+                PaperWidthMm = 58; PaperHeightMm = 40;
+                IsCustomSize = false;
+                break;
+            case "3":
+                SelectedPaperSizeIndex = 3;
+                IsCustomSize = true;
+                PaperWidthMm = CustomWidthMm;
+                PaperHeightMm = CustomHeightMm;
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void SetDensity(string tag)
+    {
+        ImageDensity = tag switch
+        {
+            "Auto" => DensityLevel.Auto,
+            "Light" => DensityLevel.Light,
+            "Medium" => DensityLevel.Medium,
+            "Dark" => DensityLevel.Dark,
+            _ => DensityLevel.Auto
+        };
+    }
+
+    [RelayCommand]
+    private async Task Print()
+    {
+        if (!IsFileLoaded || PreviewImage == null)
         {
             StatusText = "请先选择PDF文件";
             return;
         }
 
-        StatusText = "正在发送到打印机…";
+        var dialog = new Views.Dialogs.PdfPrintDialog(TotalPages, LastPrinterName)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            StatusText = "已取消打印";
+            return;
+        }
+
+        var printerName = dialog.ResultPrinterName;
+        var pageFrom = dialog.ResultPageFrom;
+        var pageTo = dialog.ResultPageTo;
+        var copies = dialog.ResultCopies;
+
+        // Remember the printer for next time
+        LastPrinterName = printerName;
+        SaveSettings();
+
+        StatusText = "正在准备打印数据…";
 
         try
         {
             var printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() != true)
+
+            // Set the selected printer
+            try
             {
-                StatusText = "已取消打印";
-                return;
+                using var printServer = new LocalPrintServer();
+                var queue = printServer.GetPrintQueue(printerName);
+                printDialog.PrintQueue = queue;
+            }
+            catch
+            {
+                // Fall back to system default if queue lookup fails
             }
 
-            printDialog.PrintTicket.CopyCount = Copies;
+            printDialog.PrintTicket.CopyCount = copies;
 
-            // Load PDF page as an image for printing (XPS-based approach)
-            // Since WPF doesn't natively render PDFs, we print using a
-            // visual placeholder that shows the file info and crop settings.
-            var visual = CreatePrintVisual(printDialog);
-            printDialog.PrintVisual(visual, $"CodePrint PDF - {System.IO.Path.GetFileName(PdfFilePath)}");
+            var columns = PrintLayoutIndex + 1; // 0=单排(1col), 1=双排(2col), 2=三排(3col)
+            var mmToPx = 96.0 / 25.4;
+            var labelW = PaperWidthMm * mmToPx;
+            var labelH = PaperHeightMm * mmToPx;
+            var pageW = labelW * columns;
+            var pageH = labelH;
+
+            // Set the exact paper size so the printer knows the label dimensions
+            printDialog.PrintTicket.PageMediaSize =
+                new PageMediaSize(pageW, pageH);
+
+            // For thermal printers: ensure portrait orientation (width = printhead, height = feed)
+            printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Portrait;
+
+            var startIdx = pageFrom - 1;
+            var endIdx = pageTo - 1;
+
+            StatusText = $"正在渲染 {endIdx - startIdx + 1} 页…";
+            var doc = new FixedDocument();
+
+            if (columns == 1)
+            {
+                // Single column: one page per PDF page
+                for (int i = startIdx; i <= endIdx; i++)
+                {
+                    var page = await CreateFixedPageAsync(i, labelW, labelH);
+                    var content = new PageContent();
+                    ((IAddChild)content).AddChild(page);
+                    doc.Pages.Add(content);
+                }
+            }
+            else
+            {
+                // Multi-column: group PDF pages into rows
+                var pageIndices = new List<int>();
+                for (int i = startIdx; i <= endIdx; i++)
+                    pageIndices.Add(i);
+
+                for (int g = 0; g < pageIndices.Count; g += columns)
+                {
+                    var fixedPage = new FixedPage { Width = pageW, Height = pageH };
+                    var dpi = GetPrintDpi();
+
+                    for (int c = 0; c < columns && g + c < pageIndices.Count; c++)
+                    {
+                        var img = await _pdfService.RenderPageAsync(pageIndices[g + c], dpi);
+                        if (img != null)
+                        {
+                            var rect = FitImageToRect(img, labelW, labelH);
+                            var imgCtrl = new System.Windows.Controls.Image
+                            {
+                                Source = img,
+                                Width = rect.Width,
+                                Height = rect.Height,
+                                Stretch = Stretch.Uniform
+                            };
+                            FixedPage.SetLeft(imgCtrl, c * labelW + rect.X);
+                            FixedPage.SetTop(imgCtrl, rect.Y);
+                            fixedPage.Children.Add(imgCtrl);
+                        }
+                    }
+
+                    fixedPage.Measure(new Size(pageW, pageH));
+                    fixedPage.Arrange(new Rect(0, 0, pageW, pageH));
+                    fixedPage.UpdateLayout();
+
+                    var content = new PageContent();
+                    ((IAddChild)content).AddChild(fixedPage);
+                    doc.Pages.Add(content);
+                }
+            }
+
+            StatusText = "正在发送到打印机…";
+            printDialog.PrintDocument(doc.DocumentPaginator,
+                $"CodePrint PDF - {Path.GetFileName(PdfFilePath)}");
 
             StatusText = "打印任务已发送";
         }
@@ -148,86 +461,106 @@ public partial class PdfCropViewModel : ObservableObject
         }
     }
 
-    /// <summary>Sets the loaded file path and updates state.</summary>
-    public void LoadPdf(string filePath)
+    // ── Public methods ──
+
+    public async void LoadPdf(string filePath)
     {
-        PdfFilePath = filePath;
-        IsFileLoaded = true;
-        StatusText = $"已加载: {System.IO.Path.GetFileName(filePath)}";
+        try
+        {
+            PdfFilePath = filePath;
+            StatusText = "正在加载PDF…";
+
+            await _pdfService.LoadAsync(filePath);
+
+            TotalPages = _pdfService.PageCount;
+            CurrentPageIndex = 0;
+            IsFileLoaded = true;
+            StatusText = $"已加载: {Path.GetFileName(filePath)}";
+
+            await RenderCurrentPageAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"加载失败: {ex.Message}";
+            IsFileLoaded = false;
+        }
     }
 
-    /// <summary>Creates a print visual based on the current processing mode and settings.</summary>
-    private DrawingVisual CreatePrintVisual(PrintDialog printDialog)
+    // ── Private helpers ──
+
+    private double GetRenderDpi()
     {
-        var visual = new DrawingVisual();
-        var pageWidth = printDialog.PrintableAreaWidth;
-        var pageHeight = printDialog.PrintableAreaHeight;
-
-        using (var dc = visual.RenderOpen())
+        return ImageDensity switch
         {
-            // White background
-            dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, pageWidth, pageHeight));
+            DensityLevel.Light => 96,
+            DensityLevel.Medium => 200,
+            DensityLevel.Dark => 300,
+            _ => 200  // Auto — good preview quality
+        };
+    }
 
-            switch (ProcessingMode)
+    private double GetPrintDpi()
+    {
+        return ImageDensity switch
+        {
+            DensityLevel.Light => 150,
+            DensityLevel.Medium => 300,
+            DensityLevel.Dark => 600,
+            _ => 300  // Auto — clear text for printing
+        };
+    }
+
+    private async Task RenderCurrentPageAsync()
+    {
+        if (!_pdfService.IsLoaded || CurrentPageIndex < 0 || CurrentPageIndex >= TotalPages)
+            return;
+
+        try
+        {
+            var dpi = GetRenderDpi();
+            PreviewImage = await _pdfService.RenderPageAsync(CurrentPageIndex, dpi);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"渲染失败: {ex.Message}";
+        }
+    }
+
+    private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double targetW, double targetH)
+    {
+        var page = new FixedPage { Width = targetW, Height = targetH };
+
+        var dpi = GetPrintDpi();
+        var img = await _pdfService.RenderPageAsync(pageIndex, dpi);
+
+        if (img != null)
+        {
+            var rect = FitImageToRect(img, targetW, targetH);
+            var imgCtrl = new System.Windows.Controls.Image
             {
-                case PdfProcessingMode.PageCrop when CropMode == CropMode.Manual:
-                    // Draw the manual crop region outline
-                    var mmToPx = 96.0 / 25.4;
-                    var cropRect = new Rect(CropX * mmToPx, CropY * mmToPx, CropWidth * mmToPx, CropHeight * mmToPx);
-                    dc.DrawRectangle(null, new Pen(Brushes.Red, 1), cropRect);
-                    DrawCenteredText(dc, $"PDF裁剪区域: {CropWidth:F1}×{CropHeight:F1}mm",
-                        pageWidth, pageHeight / 2 - 20);
-                    DrawCenteredText(dc, System.IO.Path.GetFileName(PdfFilePath!),
-                        pageWidth, pageHeight / 2 + 10);
-                    break;
-
-                case PdfProcessingMode.LabelSplit:
-                    // Draw split grid lines
-                    var cellW = (pageWidth - SplitMarginMm * 2 * (96.0 / 25.4)) / SplitColumns;
-                    var cellH = (pageHeight - SplitMarginMm * 2 * (96.0 / 25.4)) / SplitRows;
-                    var marginPx = SplitMarginMm * (96.0 / 25.4);
-                    var gapPx = SplitGapMm * (96.0 / 25.4);
-                    var pen = new Pen(Brushes.LightGray, 0.5);
-
-                    for (int r = 0; r <= SplitRows; r++)
-                    {
-                        var y = marginPx + r * (cellH + gapPx);
-                        dc.DrawLine(pen, new Point(marginPx, y), new Point(pageWidth - marginPx, y));
-                    }
-                    for (int c = 0; c <= SplitColumns; c++)
-                    {
-                        var x = marginPx + c * (cellW + gapPx);
-                        dc.DrawLine(pen, new Point(x, marginPx), new Point(x, pageHeight - marginPx));
-                    }
-
-                    DrawCenteredText(dc, $"PDF标签分割: {SplitRows}行×{SplitColumns}列",
-                        pageWidth, pageHeight / 2 - 20);
-                    DrawCenteredText(dc, System.IO.Path.GetFileName(PdfFilePath!),
-                        pageWidth, pageHeight / 2 + 10);
-                    break;
-
-                default:
-                    // No processing — just show file info at center
-                    DrawCenteredText(dc, $"PDF打印: {System.IO.Path.GetFileName(PdfFilePath!)}",
-                        pageWidth, pageHeight / 2);
-                    break;
-            }
+                Source = img,
+                Width = rect.Width,
+                Height = rect.Height,
+                Stretch = Stretch.Uniform
+            };
+            FixedPage.SetLeft(imgCtrl, rect.X);
+            FixedPage.SetTop(imgCtrl, rect.Y);
+            page.Children.Add(imgCtrl);
         }
 
-        return visual;
+        page.Measure(new Size(targetW, targetH));
+        page.Arrange(new Rect(0, 0, targetW, targetH));
+        page.UpdateLayout();
+        return page;
     }
 
-    private static void DrawCenteredText(DrawingContext dc, string text, double pageWidth, double y)
+    private static Rect FitImageToRect(BitmapSource img, double boxW, double boxH)
     {
-        var formattedText = new FormattedText(
-            text,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Microsoft YaHei"),
-            14,
-            Brushes.Black,
-            96);
-
-        dc.DrawText(formattedText, new Point((pageWidth - formattedText.Width) / 2, y));
+        var scaleX = boxW / img.PixelWidth;
+        var scaleY = boxH / img.PixelHeight;
+        var scale = Math.Min(scaleX, scaleY);
+        var w = img.PixelWidth * scale;
+        var h = img.PixelHeight * scale;
+        return new Rect((boxW - w) / 2, (boxH - h) / 2, w, h);
     }
 }

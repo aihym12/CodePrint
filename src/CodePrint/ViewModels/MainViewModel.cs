@@ -71,15 +71,16 @@ public partial class MainViewModel : ObservableObject
     private void Save()
     {
         CurrentDocument.ModifiedAt = DateTime.Now;
-        if (!string.IsNullOrEmpty(_currentFilePath))
+
+        // 始终保存到本地标签存储
+        Services.LabelStorageService.Save(CurrentDocument);
+
+        if (!string.IsNullOrEmpty(_currentFilePath) && !_currentFilePath.StartsWith("__storage__:"))
         {
             FileService.Save(CurrentDocument, _currentFilePath);
-            StatusText = $"已保存 {DateTime.Now:HH:mm:ss}";
         }
-        else
-        {
-            StatusText = "请使用「另存为」选择保存位置";
-        }
+
+        StatusText = $"已保存 {DateTime.Now:HH:mm:ss}";
     }
 
     /// <summary>Saves the document to the specified file path.</summary>
