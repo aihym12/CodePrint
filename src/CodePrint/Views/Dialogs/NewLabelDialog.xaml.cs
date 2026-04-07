@@ -12,8 +12,7 @@ public partial class NewLabelDialog : Window
     public NewLabelDialog()
     {
         InitializeComponent();
-        _labelCounter++;
-        NameTextBox.Text = $"新建标签_{_labelCounter}";
+        NameTextBox.Text = $"新建标签_{_labelCounter + 1}";
     }
 
     private void Confirm_Click(object sender, RoutedEventArgs e)
@@ -29,6 +28,8 @@ public partial class NewLabelDialog : Window
             MessageBox.Show("请输入有效的高度", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
+        _labelCounter++;
 
         CreatedDocument = new LabelDocument
         {

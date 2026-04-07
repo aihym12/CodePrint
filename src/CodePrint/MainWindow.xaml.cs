@@ -39,7 +39,6 @@ public partial class MainWindow : Window
         _designerViewModel.CurrentDocument = document;
         _designerViewModel.RefreshDocumentProperties();
         DesignerView.DataContext = _designerViewModel;
-        SetupDesignerInputBindings();
         ShowView("Designer");
     }
 

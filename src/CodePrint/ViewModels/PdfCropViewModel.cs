@@ -84,12 +84,6 @@ public partial class PdfCropViewModel : ObservableObject
     private string _statusText = "请选择或拖入PDF文件";
 
     [RelayCommand]
-    private void SelectPdfFile()
-    {
-        // Handled in code-behind to open file dialog
-    }
-
-    [RelayCommand]
     private void GoToNextStep()
     {
         if (!IsFileLoaded)

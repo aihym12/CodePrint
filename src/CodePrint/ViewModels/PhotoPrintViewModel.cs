@@ -57,12 +57,6 @@ public partial class PhotoPrintViewModel : ObservableObject
     private string _statusText = "请选择或拖入图片文件";
 
     [RelayCommand]
-    private void AddPhotos()
-    {
-        // Handled in code-behind to open file dialog
-    }
-
-    [RelayCommand]
     private void RemovePhoto()
     {
         if (SelectedPhoto != null)
