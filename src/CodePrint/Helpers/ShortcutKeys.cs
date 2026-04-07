@@ -26,4 +26,14 @@ public static class ShortcutKeys
     public static readonly KeyGesture MoveLayerDown = new(Key.OemOpenBrackets, ModifierKeys.Control);
     public static readonly KeyGesture Group = new(Key.G, ModifierKeys.Control);
     public static readonly KeyGesture Ungroup = new(Key.G, ModifierKeys.Control | ModifierKeys.Shift);
+
+    // Shift+Arrow for large nudge
+    public static readonly KeyGesture NudgeLeft = new(Key.Left, ModifierKeys.Shift);
+    public static readonly KeyGesture NudgeRight = new(Key.Right, ModifierKeys.Shift);
+    public static readonly KeyGesture NudgeUp = new(Key.Up, ModifierKeys.Shift);
+    public static readonly KeyGesture NudgeDown = new(Key.Down, ModifierKeys.Shift);
+
+    // LayerUp/Down aliases for MoveLayerUp/Down
+    public static readonly KeyGesture LayerUp = MoveLayerUp;
+    public static readonly KeyGesture LayerDown = MoveLayerDown;
 }
