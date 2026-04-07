@@ -36,6 +36,7 @@ public partial class PrintSettingsDialog : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        Loaded -= OnLoaded;
         ViewModel.RequestClose -= OnRequestClose;
         base.OnClosed(e);
     }

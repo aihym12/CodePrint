@@ -50,7 +50,7 @@ public partial class PrintViewModel : ObservableObject
         }
         catch
         {
-            // Fallback when print server is not available
+            // Fallback when print server is not available (e.g., running in restricted environment)
             AvailablePrinters.Add("Microsoft Print to PDF");
         }
 
@@ -82,7 +82,7 @@ public partial class PrintViewModel : ObservableObject
             }
             catch
             {
-                // If the specific printer can't be found, use default
+                // If the specific printer can't be found, fall back to system default printer
             }
 
             printDialog.PrintTicket.CopyCount = Settings.Copies;

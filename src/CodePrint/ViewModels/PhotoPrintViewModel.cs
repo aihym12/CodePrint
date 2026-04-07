@@ -181,7 +181,7 @@ public partial class PhotoPrintViewModel : ObservableObject
             }
             catch
             {
-                // If image fails to load, draw a placeholder
+                // Image file may be corrupted or unsupported; show a placeholder message instead
                 var errorText = new FormattedText(
                     $"无法加载图片: {photo.FileName}",
                     System.Globalization.CultureInfo.CurrentCulture,
