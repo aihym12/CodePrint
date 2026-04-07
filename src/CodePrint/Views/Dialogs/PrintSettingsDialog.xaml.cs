@@ -26,6 +26,24 @@ public partial class PrintSettingsDialog : Window
     {
         ViewModel.RequestClose += OnRequestClose;
         ViewModel.RefreshPrintersCommand.Execute(null);
+
+        // Restore orientation radio buttons from settings
+        if (ViewModel.Settings.Orientation == PrintOrientation.Landscape)
+            LandscapeRadio.IsChecked = true;
+        else
+            PortraitRadio.IsChecked = true;
+    }
+
+    private void Landscape_Checked(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PrintViewModel vm)
+            vm.Settings.Orientation = PrintOrientation.Landscape;
+    }
+
+    private void Portrait_Checked(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PrintViewModel vm)
+            vm.Settings.Orientation = PrintOrientation.Portrait;
     }
 
     private void OnRequestClose(bool result)

@@ -85,6 +85,19 @@ public partial class PrintViewModel : ObservableObject
                 // If the specific printer can't be found, fall back to system default printer
             }
 
+            var mmToPx = DesignConstants.MmToPixel;
+            int rows = Math.Max(1, Settings.LabelsPerRow);
+            int cols = Math.Max(1, Settings.LabelsPerColumn);
+            double labelW = Settings.PaperWidth * mmToPx;
+            double labelH = Settings.PaperHeight * mmToPx;
+            double pageW = labelW * cols;
+            double pageH = labelH * rows;
+
+            // Set the exact paper size so the printer uses the correct label dimensions
+            printDialog.PrintTicket.PageMediaSize = new PageMediaSize(pageW, pageH);
+            printDialog.PrintTicket.PageOrientation = Settings.Orientation == PrintOrientation.Landscape
+                ? System.Printing.PageOrientation.Landscape
+                : System.Printing.PageOrientation.Portrait;
             printDialog.PrintTicket.CopyCount = Settings.Copies;
 
             // Render document to a visual for printing
@@ -115,35 +128,52 @@ public partial class PrintViewModel : ObservableObject
         var visual = new DrawingVisual();
         var mmToPx = DesignConstants.MmToPixel;
 
+        double docWidth = Document!.WidthMm * mmToPx;
+        double docHeight = Document.HeightMm * mmToPx;
+
+        // Prepare label background brush
+        var bgBrush = Document.BackgroundColor == "Transparent"
+            ? Brushes.White
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString(Document.BackgroundColor));
+
+        // Render label content to a bitmap
+        var canvas = new Canvas { Width = docWidth, Height = docHeight };
+        foreach (var element in Document.Elements.OrderBy(e => e.ZIndex))
+        {
+            if (!element.IsVisible) continue;
+            CanvasRendererHelper.RenderElement(canvas, element);
+        }
+
+        canvas.Measure(new Size(docWidth, docHeight));
+        canvas.Arrange(new Rect(0, 0, docWidth, docHeight));
+        canvas.UpdateLayout();
+
+        var renderBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)Math.Max(1, docWidth), (int)Math.Max(1, docHeight), 96, 96, PixelFormats.Pbgra32);
+        renderBitmap.Render(canvas);
+
+        int rows = Math.Max(1, Settings.LabelsPerRow);
+        int cols = Math.Max(1, Settings.LabelsPerColumn);
+        double labelW = Settings.PaperWidth * mmToPx;
+        double labelH = Settings.PaperHeight * mmToPx;
+
         using (var dc = visual.RenderOpen())
         {
-            double docWidth = Document!.WidthMm * mmToPx;
-            double docHeight = Document.HeightMm * mmToPx;
-
-            // Draw background
-            var bgBrush = Document.BackgroundColor == "Transparent"
-                ? Brushes.White
-                : new SolidColorBrush((Color)ColorConverter.ConvertFromString(Document.BackgroundColor));
-            dc.DrawRectangle(bgBrush, null, new Rect(0, 0, docWidth, docHeight));
-
-            // Render each element by drawing it onto a temporary canvas and then rendering it
-            var canvas = new Canvas { Width = docWidth, Height = docHeight };
-            foreach (var element in Document.Elements.OrderBy(e => e.ZIndex))
+            // Tile the label across the page for multi-label layouts
+            for (int r = 0; r < rows; r++)
             {
-                if (!element.IsVisible) continue;
-                CanvasRendererHelper.RenderElement(canvas, element);
+                for (int c = 0; c < cols; c++)
+                {
+                    double x = c * labelW;
+                    double y = r * labelH;
+
+                    // Draw label background
+                    dc.DrawRectangle(bgBrush, null, new Rect(x, y, labelW, labelH));
+
+                    // Draw label content
+                    dc.DrawImage(renderBitmap, new Rect(x, y, docWidth, docHeight));
+                }
             }
-
-            // Measure and arrange the canvas so it can be rendered
-            canvas.Measure(new Size(docWidth, docHeight));
-            canvas.Arrange(new Rect(0, 0, docWidth, docHeight));
-            canvas.UpdateLayout();
-
-            // Render the canvas onto the drawing context
-            var renderBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
-                (int)docWidth, (int)docHeight, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(canvas);
-            dc.DrawImage(renderBitmap, new Rect(0, 0, docWidth, docHeight));
         }
 
         return visual;

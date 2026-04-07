@@ -37,8 +37,8 @@
 
                 <TextBlock Text="打印方向" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Content="横向" Margin="0,0,16,0"/>
-                    <RadioButton Content="纵向" IsChecked="True"/>
+                    <RadioButton x:Name="LandscapeRadio" Content="横向" Margin="0,0,16,0" Checked="Landscape_Checked"/>
+                    <RadioButton x:Name="PortraitRadio" Content="纵向" IsChecked="True" Checked="Portrait_Checked"/>
                 </StackPanel>
 
                 <TextBlock Text="打印份数" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
