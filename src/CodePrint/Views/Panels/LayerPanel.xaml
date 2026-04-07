@@ -60,7 +60,7 @@
                                         <Setter Property="Text" Value="👁"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsVisible}" Value="False">
-                                                <Setter Property="Text" Value="👁‍🗨"/>
+                                                <Setter Property="Text" Value="—"/>
                                                 <Setter Property="Opacity" Value="0.4"/>
                                             </DataTrigger>
                                         </Style.Triggers>

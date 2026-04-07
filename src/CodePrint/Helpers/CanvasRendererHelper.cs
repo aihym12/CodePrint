@@ -432,7 +432,7 @@ public static class CanvasRendererHelper
         try
         {
             if (string.IsNullOrEmpty(hex) || hex == "Transparent")
-                return Brushes.Transparent as SolidColorBrush ?? new SolidColorBrush(Colors.Transparent);
+                return Brushes.Transparent;
             var color = (Color)ColorConverter.ConvertFromString(hex);
             return new SolidColorBrush(color);
         }

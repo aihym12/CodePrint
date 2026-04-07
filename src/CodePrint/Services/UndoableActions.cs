@@ -75,8 +75,17 @@ public class MoveElementAction : IUndoableAction
         _newY = newY;
     }
 
-    public void Execute() { _element.X = _newX; _element.Y = _newY; }
-    public void Undo() { _element.X = _oldX; _element.Y = _oldY; }
+    public void Execute()
+    {
+        _element.X = _newX;
+        _element.Y = _newY;
+    }
+
+    public void Undo()
+    {
+        _element.X = _oldX;
+        _element.Y = _oldY;
+    }
 }
 
 /// <summary>
@@ -99,6 +108,15 @@ public class ResizeElementAction : IUndoableAction
         _newH = newH;
     }
 
-    public void Execute() { _element.Width = _newW; _element.Height = _newH; }
-    public void Undo() { _element.Width = _oldW; _element.Height = _oldH; }
+    public void Execute()
+    {
+        _element.Width = _newW;
+        _element.Height = _newH;
+    }
+
+    public void Undo()
+    {
+        _element.Width = _oldW;
+        _element.Height = _oldH;
+    }
 }

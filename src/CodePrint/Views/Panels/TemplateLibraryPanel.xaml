@@ -99,11 +99,21 @@
                                             Style="{StaticResource PrimaryButton}"
                                             Command="{Binding DataContext.UseTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"/>
-                                    <Button Content="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}, FallbackValue=☆}"
-                                            FontSize="12" Padding="4,2" Margin="4,0,0,0"
+                                    <Button FontSize="12" Padding="4,2" Margin="4,0,0,0"
                                             Background="Transparent" BorderThickness="0" Cursor="Hand"
                                             Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}"/>
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Content" Value="☆"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                        <Setter Property="Content" Value="★"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                 </StackPanel>
                             </StackPanel>
                         </Border>

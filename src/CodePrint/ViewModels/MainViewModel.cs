@@ -78,7 +78,7 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"已保存 {DateTime.Now:HH:mm:ss}";
+            StatusText = "请使用「另存为」选择保存位置";
         }
     }
 

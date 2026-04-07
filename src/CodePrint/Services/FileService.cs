@@ -56,19 +56,7 @@ public class LabelElementConverter : JsonConverter<LabelElement>
             return null;
 
         var elementType = typeProp.Deserialize<ElementType>(options);
-
-        // Create a new options instance without this converter to avoid infinite recursion
-        var innerOptions = new JsonSerializerOptions(options);
-        // Remove this converter from the inner options
-        for (int i = innerOptions.Converters.Count - 1; i >= 0; i--)
-        {
-            if (innerOptions.Converters[i] is LabelElementConverter)
-            {
-                innerOptions.Converters.RemoveAt(i);
-                break;
-            }
-        }
-
+        var innerOptions = CreateInnerOptions(options);
         var rawJson = root.GetRawText();
 
         return elementType switch
@@ -92,7 +80,15 @@ public class LabelElementConverter : JsonConverter<LabelElement>
 
     public override void Write(Utf8JsonWriter writer, LabelElement value, JsonSerializerOptions options)
     {
-        // Create inner options without this converter to avoid infinite recursion
+        var innerOptions = CreateInnerOptions(options);
+        JsonSerializer.Serialize(writer, value, value.GetType(), innerOptions);
+    }
+
+    /// <summary>
+    /// Creates a copy of the options without this converter to avoid infinite recursion.
+    /// </summary>
+    private static JsonSerializerOptions CreateInnerOptions(JsonSerializerOptions options)
+    {
         var innerOptions = new JsonSerializerOptions(options);
         for (int i = innerOptions.Converters.Count - 1; i >= 0; i--)
         {
@@ -102,7 +98,6 @@ public class LabelElementConverter : JsonConverter<LabelElement>
                 break;
             }
         }
-
-        JsonSerializer.Serialize(writer, value, value.GetType(), innerOptions);
+        return innerOptions;
     }
 }
