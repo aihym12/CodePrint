@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace CodePrint.Models;
 
 public enum PrintOrientation { Portrait, Landscape }
@@ -17,7 +19,7 @@ public class LabelDocument
     public double ColumnSpacing { get; set; }
     public int ColumnsPerRow { get; set; } = 1;
     public string BackgroundColor { get; set; } = "#FFFFFF";
-    public List<LabelElement> Elements { get; set; } = new();
+    public ObservableCollection<LabelElement> Elements { get; set; } = new();
     public string? FolderId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime ModifiedAt { get; set; } = DateTime.Now;

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CodePrint.Models;
 
 namespace CodePrint.Services;
@@ -7,12 +8,12 @@ namespace CodePrint.Services;
 /// </summary>
 public class AddElementAction : IUndoableAction
 {
-    private readonly List<LabelElement> _elements;
+    private readonly ObservableCollection<LabelElement> _elements;
     private readonly LabelElement _element;
 
     public string Description => $"添加 {_element.Name}";
 
-    public AddElementAction(List<LabelElement> elements, LabelElement element)
+    public AddElementAction(ObservableCollection<LabelElement> elements, LabelElement element)
     {
         _elements = elements;
         _element = element;
@@ -27,13 +28,13 @@ public class AddElementAction : IUndoableAction
 /// </summary>
 public class RemoveElementAction : IUndoableAction
 {
-    private readonly List<LabelElement> _elements;
+    private readonly ObservableCollection<LabelElement> _elements;
     private readonly LabelElement _element;
     private int _index;
 
     public string Description => $"删除 {_element.Name}";
 
-    public RemoveElementAction(List<LabelElement> elements, LabelElement element)
+    public RemoveElementAction(ObservableCollection<LabelElement> elements, LabelElement element)
     {
         _elements = elements;
         _element = element;
