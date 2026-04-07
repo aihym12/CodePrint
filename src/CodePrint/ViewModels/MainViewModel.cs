@@ -2,11 +2,16 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CodePrint.Models;
+using CodePrint.Services;
 
 namespace CodePrint.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly UndoRedoService _undoRedo = new();
+    private LabelElement? _clipboard;
+    private string? _currentFilePath;
+
     [ObservableProperty]
     private LabelDocument _currentDocument = new();
 
@@ -36,6 +41,14 @@ public partial class MainViewModel : ObservableObject
 
     public string DocumentTitle => $"{CurrentDocument.Name} {CurrentDocument.WidthMm}×{CurrentDocument.HeightMm}mm";
 
+    public UndoRedoService UndoRedoService => _undoRedo;
+
+    public string? CurrentFilePath
+    {
+        get => _currentFilePath;
+        set => SetProperty(ref _currentFilePath, value);
+    }
+
     partial void OnZoomLevelChanged(double value)
     {
         OnPropertyChanged(nameof(ZoomPercentage));
@@ -46,18 +59,67 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DocumentTitle));
     }
 
+    /// <summary>Refreshes computed properties that depend on the current document.</summary>
+    public void RefreshDocumentProperties()
+    {
+        OnPropertyChanged(nameof(DocumentTitle));
+    }
+
+    // ── File Operations ──
+
     [RelayCommand]
     private void Save()
     {
         CurrentDocument.ModifiedAt = DateTime.Now;
-        StatusText = $"已保存 {DateTime.Now:HH:mm:ss}";
+        if (!string.IsNullOrEmpty(_currentFilePath))
+        {
+            FileService.Save(CurrentDocument, _currentFilePath);
+            StatusText = $"已保存 {DateTime.Now:HH:mm:ss}";
+        }
+        else
+        {
+            StatusText = "请使用「另存为」选择保存位置";
+        }
+    }
+
+    /// <summary>Saves the document to the specified file path.</summary>
+    public void SaveToFile(string filePath)
+    {
+        CurrentDocument.ModifiedAt = DateTime.Now;
+        FileService.Save(CurrentDocument, filePath);
+        _currentFilePath = filePath;
+        StatusText = $"已保存到 {System.IO.Path.GetFileName(filePath)}";
+    }
+
+    /// <summary>Loads a document from the specified file path.</summary>
+    public void LoadFromFile(string filePath)
+    {
+        var doc = FileService.Load(filePath);
+        CurrentDocument = doc;
+        _currentFilePath = filePath;
+        SelectedElement = null;
+        SelectedElements.Clear();
+        _undoRedo.Clear();
+        StatusText = $"已加载 {System.IO.Path.GetFileName(filePath)}";
+    }
+
+    // ── Undo / Redo ──
+
+    [RelayCommand]
+    private void Undo()
+    {
+        _undoRedo.Undo();
+        StatusText = "撤销";
     }
 
     [RelayCommand]
-    private void Undo() => StatusText = "撤销";
+    private void Redo()
+    {
+        _undoRedo.Redo();
+        StatusText = "恢复";
+    }
 
-    [RelayCommand]
-    private void Redo() => StatusText = "恢复";
+    // ── Selection ──
 
     [RelayCommand]
     private void SelectAll()
@@ -65,6 +127,67 @@ public partial class MainViewModel : ObservableObject
         SelectedElements.Clear();
         foreach (var element in CurrentDocument.Elements)
             SelectedElements.Add(element);
+        if (SelectedElements.Count > 0)
+            SelectedElement = SelectedElements[0];
+    }
+
+    // ── Clipboard Operations ──
+
+    [RelayCommand]
+    private void CopySelected()
+    {
+        if (SelectedElement != null)
+        {
+            _clipboard = ElementCloneService.Clone(SelectedElement);
+            StatusText = "已复制";
+        }
+    }
+
+    [RelayCommand]
+    private void Paste()
+    {
+        if (_clipboard != null)
+        {
+            var clone = ElementCloneService.Clone(_clipboard);
+            clone.X += 2;
+            clone.Y += 2;
+            clone.ZIndex = CurrentDocument.Elements.Count;
+
+            var action = new AddElementAction(CurrentDocument.Elements, clone);
+            _undoRedo.Execute(action);
+            SelectedElement = clone;
+            StatusText = "已粘贴";
+        }
+    }
+
+    [RelayCommand]
+    private void CutSelected()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+        {
+            _clipboard = ElementCloneService.Clone(SelectedElement);
+            var action = new RemoveElementAction(CurrentDocument.Elements, SelectedElement);
+            _undoRedo.Execute(action);
+            SelectedElement = null;
+            StatusText = "已剪切";
+        }
+    }
+
+    [RelayCommand]
+    private void Duplicate()
+    {
+        if (SelectedElement != null)
+        {
+            var clone = ElementCloneService.Clone(SelectedElement);
+            clone.X += 2;
+            clone.Y += 2;
+            clone.ZIndex = CurrentDocument.Elements.Count;
+
+            var action = new AddElementAction(CurrentDocument.Elements, clone);
+            _undoRedo.Execute(action);
+            SelectedElement = clone;
+            StatusText = "已复制元素";
+        }
     }
 
     [RelayCommand]
@@ -72,16 +195,13 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
         {
-            CurrentDocument.Elements.Remove(SelectedElement);
+            var action = new RemoveElementAction(CurrentDocument.Elements, SelectedElement);
+            _undoRedo.Execute(action);
             SelectedElement = null;
         }
     }
 
-    [RelayCommand]
-    private void CopySelected() => StatusText = "已复制";
-
-    [RelayCommand]
-    private void Paste() => StatusText = "已粘贴";
+    // ── Transform ──
 
     [RelayCommand]
     private void RotateSelected()
@@ -97,6 +217,8 @@ public partial class MainViewModel : ObservableObject
             SelectedElement.IsLocked = !SelectedElement.IsLocked;
     }
 
+    // ── Zoom ──
+
     [RelayCommand]
     private void ZoomIn() => ZoomLevel = Math.Min(ZoomLevel + 0.25, 10.0);
 
@@ -106,8 +228,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void FitToWindow() => ZoomLevel = 1.0;
 
+    // ── Layer Panel ──
+
     [RelayCommand]
     private void ToggleLayerPanel() => IsLayerPanelVisible = !IsLayerPanelVisible;
+
+    // ── Add Element ──
 
     [RelayCommand]
     private void AddElement(string elementType)
@@ -124,6 +250,7 @@ public partial class MainViewModel : ObservableObject
             "Rectangle" => new RectangleElement { X = 5, Y = 5 },
             "Date" => new DateElement { X = 5, Y = 5 },
             "Table" => new TableElement { X = 5, Y = 5 },
+            "Pdf" => new PdfElement { X = 5, Y = 5 },
             "Warning" => new WarningElement { X = 5, Y = 5 },
             "Watermark" => new WatermarkElement { X = 0, Y = 0 },
             _ => null
@@ -132,10 +259,13 @@ public partial class MainViewModel : ObservableObject
         if (element != null)
         {
             element.ZIndex = CurrentDocument.Elements.Count;
-            CurrentDocument.Elements.Add(element);
+            var action = new AddElementAction(CurrentDocument.Elements, element);
+            _undoRedo.Execute(action);
             SelectedElement = element;
         }
     }
+
+    // ── Layer Ordering ──
 
     [RelayCommand]
     private void BringToFront()
@@ -164,6 +294,8 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedElement != null) SelectedElement.ZIndex--;
     }
+
+    // ── Alignment ──
 
     [RelayCommand]
     private void AlignLeft()
@@ -213,6 +345,8 @@ public partial class MainViewModel : ObservableObject
         foreach (var e in SelectedElements) e.Y = avgCenterY - e.Height / 2;
     }
 
+    // ── Distribution ──
+
     [RelayCommand]
     private void DistributeH()
     {
@@ -243,5 +377,71 @@ public partial class MainViewModel : ObservableObject
             sorted[i].Y = currentY;
             currentY += sorted[i].Height + gap;
         }
+    }
+
+    // ── Nudge (Arrow key movement) ──
+
+    [RelayCommand]
+    private void NudgeLeft()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.X -= Helpers.DesignConstants.NudgeDistance;
+    }
+
+    [RelayCommand]
+    private void NudgeRight()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.X += Helpers.DesignConstants.NudgeDistance;
+    }
+
+    [RelayCommand]
+    private void NudgeUp()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.Y -= Helpers.DesignConstants.NudgeDistance;
+    }
+
+    [RelayCommand]
+    private void NudgeDown()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.Y += Helpers.DesignConstants.NudgeDistance;
+    }
+
+    [RelayCommand]
+    private void LargeNudgeLeft()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.X -= Helpers.DesignConstants.LargeNudgeDistance;
+    }
+
+    [RelayCommand]
+    private void LargeNudgeRight()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.X += Helpers.DesignConstants.LargeNudgeDistance;
+    }
+
+    [RelayCommand]
+    private void LargeNudgeUp()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.Y -= Helpers.DesignConstants.LargeNudgeDistance;
+    }
+
+    [RelayCommand]
+    private void LargeNudgeDown()
+    {
+        if (SelectedElement != null && !SelectedElement.IsLocked)
+            SelectedElement.Y += Helpers.DesignConstants.LargeNudgeDistance;
+    }
+
+    // ── Print (command for keyboard shortcut; actual dialog is in code-behind) ──
+
+    [RelayCommand]
+    private void Print()
+    {
+        StatusText = "打印...";
     }
 }
