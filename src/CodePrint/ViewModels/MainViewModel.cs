@@ -437,11 +437,15 @@ public partial class MainViewModel : ObservableObject
             SelectedElement.Y += Helpers.DesignConstants.LargeNudgeDistance;
     }
 
-    // ── Print (command for keyboard shortcut; actual dialog is in code-behind) ──
+    // ── Print (command for keyboard shortcut; opens the print settings dialog) ──
+
+    /// <summary>Raised when the print dialog should be shown.</summary>
+    public event Action? RequestShowPrintDialog;
 
     [RelayCommand]
     private void Print()
     {
         StatusText = "打印...";
+        RequestShowPrintDialog?.Invoke();
     }
 }
