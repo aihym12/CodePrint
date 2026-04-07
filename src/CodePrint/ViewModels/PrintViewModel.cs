@@ -170,8 +170,8 @@ public partial class PrintViewModel : ObservableObject
                     // Draw label background
                     dc.DrawRectangle(bgBrush, null, new Rect(x, y, labelW, labelH));
 
-                    // Draw label content
-                    dc.DrawImage(renderBitmap, new Rect(x, y, docWidth, docHeight));
+                    // Draw label content scaled to the label cell
+                    dc.DrawImage(renderBitmap, new Rect(x, y, labelW, labelH));
                 }
             }
         }
