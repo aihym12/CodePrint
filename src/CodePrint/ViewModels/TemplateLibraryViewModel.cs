@@ -44,8 +44,17 @@ public partial class TemplateLibraryViewModel : ObservableObject
         }
     }
 
+    /// <summary>Raised when a template is selected for use, carrying the template's document.</summary>
+    public event Action<LabelDocument>? TemplateSelected;
+
     [RelayCommand]
-    private void UseTemplate(LabelTemplate template) { }
+    private void UseTemplate(LabelTemplate template)
+    {
+        if (template?.Document != null)
+        {
+            TemplateSelected?.Invoke(template.Document);
+        }
+    }
 
     [RelayCommand]
     private void ToggleFavorite(LabelTemplate template)

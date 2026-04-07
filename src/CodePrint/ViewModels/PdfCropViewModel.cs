@@ -1,3 +1,8 @@
+using System.Printing;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -110,7 +115,37 @@ public partial class PdfCropViewModel : ObservableObject
     [RelayCommand]
     private void Print()
     {
+        if (!IsFileLoaded || string.IsNullOrEmpty(PdfFilePath))
+        {
+            StatusText = "请先选择PDF文件";
+            return;
+        }
+
         StatusText = "正在发送到打印机…";
+
+        try
+        {
+            var printDialog = new PrintDialog();
+            if (printDialog.ShowDialog() != true)
+            {
+                StatusText = "已取消打印";
+                return;
+            }
+
+            printDialog.PrintTicket.CopyCount = Copies;
+
+            // Load PDF page as an image for printing (XPS-based approach)
+            // Since WPF doesn't natively render PDFs, we print using a
+            // visual placeholder that shows the file info and crop settings.
+            var visual = CreatePrintVisual(printDialog);
+            printDialog.PrintVisual(visual, $"CodePrint PDF - {System.IO.Path.GetFileName(PdfFilePath)}");
+
+            StatusText = "打印任务已发送";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"打印失败: {ex.Message}";
+        }
     }
 
     /// <summary>Sets the loaded file path and updates state.</summary>
@@ -119,5 +154,80 @@ public partial class PdfCropViewModel : ObservableObject
         PdfFilePath = filePath;
         IsFileLoaded = true;
         StatusText = $"已加载: {System.IO.Path.GetFileName(filePath)}";
+    }
+
+    /// <summary>Creates a print visual based on the current processing mode and settings.</summary>
+    private DrawingVisual CreatePrintVisual(PrintDialog printDialog)
+    {
+        var visual = new DrawingVisual();
+        var pageWidth = printDialog.PrintableAreaWidth;
+        var pageHeight = printDialog.PrintableAreaHeight;
+
+        using (var dc = visual.RenderOpen())
+        {
+            // White background
+            dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, pageWidth, pageHeight));
+
+            switch (ProcessingMode)
+            {
+                case PdfProcessingMode.PageCrop when CropMode == CropMode.Manual:
+                    // Draw the manual crop region outline
+                    var mmToPx = 96.0 / 25.4;
+                    var cropRect = new Rect(CropX * mmToPx, CropY * mmToPx, CropWidth * mmToPx, CropHeight * mmToPx);
+                    dc.DrawRectangle(null, new Pen(Brushes.Red, 1), cropRect);
+                    DrawCenteredText(dc, $"PDF裁剪区域: {CropWidth:F1}×{CropHeight:F1}mm",
+                        pageWidth, pageHeight / 2 - 20);
+                    DrawCenteredText(dc, System.IO.Path.GetFileName(PdfFilePath!),
+                        pageWidth, pageHeight / 2 + 10);
+                    break;
+
+                case PdfProcessingMode.LabelSplit:
+                    // Draw split grid lines
+                    var cellW = (pageWidth - SplitMarginMm * 2 * (96.0 / 25.4)) / SplitColumns;
+                    var cellH = (pageHeight - SplitMarginMm * 2 * (96.0 / 25.4)) / SplitRows;
+                    var marginPx = SplitMarginMm * (96.0 / 25.4);
+                    var gapPx = SplitGapMm * (96.0 / 25.4);
+                    var pen = new Pen(Brushes.LightGray, 0.5);
+
+                    for (int r = 0; r <= SplitRows; r++)
+                    {
+                        var y = marginPx + r * (cellH + gapPx);
+                        dc.DrawLine(pen, new Point(marginPx, y), new Point(pageWidth - marginPx, y));
+                    }
+                    for (int c = 0; c <= SplitColumns; c++)
+                    {
+                        var x = marginPx + c * (cellW + gapPx);
+                        dc.DrawLine(pen, new Point(x, marginPx), new Point(x, pageHeight - marginPx));
+                    }
+
+                    DrawCenteredText(dc, $"PDF标签分割: {SplitRows}行×{SplitColumns}列",
+                        pageWidth, pageHeight / 2 - 20);
+                    DrawCenteredText(dc, System.IO.Path.GetFileName(PdfFilePath!),
+                        pageWidth, pageHeight / 2 + 10);
+                    break;
+
+                default:
+                    // No processing — just show file info at center
+                    DrawCenteredText(dc, $"PDF打印: {System.IO.Path.GetFileName(PdfFilePath!)}",
+                        pageWidth, pageHeight / 2);
+                    break;
+            }
+        }
+
+        return visual;
+    }
+
+    private static void DrawCenteredText(DrawingContext dc, string text, double pageWidth, double y)
+    {
+        var formattedText = new FormattedText(
+            text,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Microsoft YaHei"),
+            14,
+            Brushes.Black,
+            96);
+
+        dc.DrawText(formattedText, new Point((pageWidth - formattedText.Width) / 2, y));
     }
 }

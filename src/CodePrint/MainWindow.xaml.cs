@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         SetupHomePage();
+        _designerViewModel.RequestShowPrintDialog += () => Print_Click(this, new RoutedEventArgs());
     }
 
     private MainViewModel ViewModel => _designerViewModel;
@@ -130,6 +131,7 @@ public partial class MainWindow : Window
     private void Print_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new PrintSettingsDialog { Owner = this };
+        dialog.SetDocument(ViewModel.CurrentDocument);
         dialog.ShowDialog();
     }
 
