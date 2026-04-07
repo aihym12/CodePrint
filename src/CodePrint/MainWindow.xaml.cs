@@ -23,7 +23,12 @@ public partial class MainWindow : Window
     private void LabelSettings_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new LabelSettingsDialog { Owner = this };
-        dialog.ShowDialog();
+        dialog.LoadFromMainViewModel(ViewModel);
+        if (dialog.ShowDialog() == true)
+        {
+            dialog.SettingsViewModel.ApplyToDocument(ViewModel.CurrentDocument);
+            ViewModel.RefreshDocumentProperties();
+        }
     }
 
     private void Print_Click(object sender, RoutedEventArgs e)

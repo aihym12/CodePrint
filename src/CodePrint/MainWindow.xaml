@@ -158,13 +158,29 @@
                     <Button Content="≡≡" Style="{StaticResource FormatButton}" ToolTip="两端对齐"/>
                     <Separator Style="{StaticResource ToolbarSeparator}"/>
                     <TextBlock Text="x:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11"/>
+                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox.Text>
+                            <Binding Path="SelectedElement.X" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                        </TextBox.Text>
+                    </TextBox>
                     <TextBlock Text="y:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11"/>
+                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox.Text>
+                            <Binding Path="SelectedElement.Y" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                        </TextBox.Text>
+                    </TextBox>
                     <TextBlock Text="w:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11"/>
+                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox.Text>
+                            <Binding Path="SelectedElement.Width" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                        </TextBox.Text>
+                    </TextBox>
                     <TextBlock Text="h:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11"/>
+                    <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox.Text>
+                            <Binding Path="SelectedElement.Height" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                        </TextBox.Text>
+                    </TextBox>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -181,7 +197,14 @@
             <panels:ElementPanel Grid.Column="0"/>
 
             <!-- Center Canvas -->
-            <panels:CanvasPanel Grid.Column="1" DataContext="{Binding}"/>
+            <Grid Grid.Column="1">
+                <panels:CanvasPanel DataContext="{Binding}"/>
+
+                <!-- Layer Panel (floating overlay, toggled by 图层 button) -->
+                <panels:LayerPanel HorizontalAlignment="Right" VerticalAlignment="Top"
+                                   Width="200" MaxHeight="400" Margin="0,8,8,0"
+                                   Visibility="{Binding IsLayerPanelVisible, Converter={StaticResource BoolToVisibility}}"/>
+            </Grid>
 
             <!-- Right Panel -->
             <panels:PropertyPanel Grid.Column="2"/>

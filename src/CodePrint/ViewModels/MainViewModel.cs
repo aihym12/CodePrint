@@ -59,6 +59,12 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DocumentTitle));
     }
 
+    /// <summary>Refreshes computed properties that depend on the current document.</summary>
+    public void RefreshDocumentProperties()
+    {
+        OnPropertyChanged(nameof(DocumentTitle));
+    }
+
     // ── File Operations ──
 
     [RelayCommand]
