@@ -91,8 +91,12 @@ public static class OcrService
             }
 
             // Use median word height for a more stable font-size estimate.
-            wordHeights.Sort();
-            double medianWordHeight = wordHeights[wordHeights.Count / 2];
+            double medianWordHeight = 0;
+            if (wordHeights.Count > 0)
+            {
+                wordHeights.Sort();
+                medianWordHeight = wordHeights[wordHeights.Count / 2];
+            }
 
             lines.Add(new OcrTextLine
             {
