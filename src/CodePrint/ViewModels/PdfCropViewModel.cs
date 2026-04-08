@@ -528,7 +528,7 @@ public partial class PdfCropViewModel : ObservableObject
     {
         return ImageDensity switch
         {
-            DensityLevel.Light => 300,
+            DensityLevel.Light => 600,
             DensityLevel.Medium => 600,
             DensityLevel.Dark => 600,
             _ => 600  // Auto — high quality for sharp text on thermal printers like QR-488
