@@ -90,7 +90,8 @@
             <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
-                        <ComboBox Width="140" Margin="0,0,4,0" ToolTip="字体" SelectedIndex="0">
+                        <ComboBox x:Name="FontFamilyCombo" Width="140" Margin="0,0,4,0" ToolTip="字体" SelectedIndex="0"
+                                  SelectionChanged="FontFamilyCombo_SelectionChanged">
                             <ComboBoxItem Content="微软雅黑"/>
                             <ComboBoxItem Content="宋体"/>
                             <ComboBoxItem Content="黑体"/>
@@ -99,7 +100,9 @@
                             <ComboBoxItem Content="Arial"/>
                             <ComboBoxItem Content="Times New Roman"/>
                         </ComboBox>
-                        <ComboBox Width="60" Margin="0,0,4,0" ToolTip="字号" SelectedIndex="3" IsEditable="True">
+                        <ComboBox x:Name="FontSizeCombo" Width="60" Margin="0,0,4,0" ToolTip="字号" SelectedIndex="3" IsEditable="True"
+                                  SelectionChanged="FontSizeCombo_SelectionChanged"
+                                  LostFocus="FontSizeCombo_LostFocus">
                             <ComboBoxItem Content="8"/>
                             <ComboBoxItem Content="9"/>
                             <ComboBoxItem Content="10"/>
@@ -116,14 +119,16 @@
                         </ComboBox>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <TextBlock Text="字间距" VerticalAlignment="Center" Margin="4,0" FontSize="11"/>
-                        <TextBox Width="40" Text="0" VerticalContentAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox x:Name="LetterSpacingBox" Width="40" Text="0" VerticalContentAlignment="Center" Margin="0,0,4,0"
+                                 LostFocus="LetterSpacingBox_LostFocus"/>
                         <TextBlock Text="行间距" VerticalAlignment="Center" Margin="4,0" FontSize="11"/>
-                        <TextBox Width="40" Text="1.2" VerticalContentAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox x:Name="LineSpacingBox" Width="40" Text="1.2" VerticalContentAlignment="Center" Margin="0,0,4,0"
+                                 LostFocus="LineSpacingBox_LostFocus"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
-                        <Button Content="B" Style="{StaticResource FormatButton}" FontWeight="Bold" ToolTip="粗体"/>
-                        <Button Content="I" Style="{StaticResource FormatButton}" FontStyle="Italic" ToolTip="斜体"/>
-                        <Button Content="U" Style="{StaticResource FormatButton}" ToolTip="下划线"/>
-                        <Button Content="S" Style="{StaticResource FormatButton}" ToolTip="删除线"/>
+                        <Button x:Name="BoldButton" Content="B" Style="{StaticResource FormatButton}" FontWeight="Bold" ToolTip="粗体" Click="BoldButton_Click"/>
+                        <Button x:Name="ItalicButton" Content="I" Style="{StaticResource FormatButton}" FontStyle="Italic" ToolTip="斜体" Click="ItalicButton_Click"/>
+                        <Button x:Name="UnderlineButton" Content="U" Style="{StaticResource FormatButton}" ToolTip="下划线" Click="UnderlineButton_Click"/>
+                        <Button x:Name="StrikethroughButton" Content="S" Style="{StaticResource FormatButton}" ToolTip="删除线" Click="StrikethroughButton_Click"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <Button Content="≡⫷" Style="{StaticResource FormatButton}" ToolTip="左对齐"/>
                         <Button Content="≡⊟" Style="{StaticResource FormatButton}" ToolTip="居中"/>
