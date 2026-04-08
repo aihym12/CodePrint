@@ -10,67 +10,80 @@
                         Tag="Text"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="||| 条码"
                         Tag="Barcode"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="⊞ 二维码"
                         Tag="QrCode"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="🔗 关联码"
                         Tag="LinkedQrCode"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="🖼 图片"
                         Tag="Image"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="★ 图标"
                         Tag="Icon"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="━ 线条"
                         Tag="Line"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="▭ 矩形"
                         Tag="Rectangle"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="📅 日期"
                         Tag="Date"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="▦ 表格"
                         Tag="Table"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="📄 PDF"
                         Tag="Pdf"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="⚠ 警示语"
                         Tag="Warning"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
                 <Button Style="{StaticResource ElementPanelButton}" Content="💧 水印"
                         Tag="Watermark"
                         MouseDoubleClick="ElementButton_MouseDoubleClick"
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="ElementButton_PreviewMouseMove"/>
+                        PreviewMouseMove="ElementButton_PreviewMouseMove"
+                        PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
             </StackPanel>
         </ScrollViewer>
     </Border>
