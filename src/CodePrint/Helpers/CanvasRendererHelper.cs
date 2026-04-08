@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using CodePrint.Models;
 
@@ -385,16 +386,52 @@ public static class CanvasRendererHelper
 
     private static FrameworkElement RenderImage(ImageElement element)
     {
+        var widthPx = element.Width * MmToPx;
+        var heightPx = element.Height * MmToPx;
+
         var border = new Border
         {
-            Width = element.Width * MmToPx,
-            Height = element.Height * MmToPx,
+            Width = widthPx,
+            Height = heightPx,
             CornerRadius = new CornerRadius(element.CornerRadius),
+            ClipToBounds = true,
             Background = Brushes.LightGray,
             BorderBrush = Brushes.Gray,
             BorderThickness = new Thickness(0.5)
         };
 
+        if (!string.IsNullOrEmpty(element.ImagePath) && System.IO.File.Exists(element.ImagePath))
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(element.ImagePath, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                var image = new Image
+                {
+                    Source = bitmap,
+                    Width = widthPx,
+                    Height = heightPx,
+                    Stretch = element.MaintainAspectRatio ? Stretch.Uniform : Stretch.Fill
+                };
+
+                border.Child = image;
+                border.Background = Brushes.Transparent;
+                border.BorderThickness = new Thickness(0);
+                return border;
+            }
+            catch
+            {
+                // Fall through to placeholder on load failure
+            }
+        }
+
+        // Show placeholder when no image path or file not found
         border.Child = new TextBlock
         {
             Text = string.IsNullOrEmpty(element.ImagePath) ? "🖼 图片" : System.IO.Path.GetFileName(element.ImagePath),
