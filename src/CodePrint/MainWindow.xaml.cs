@@ -396,7 +396,7 @@ public partial class MainWindow : Window
     /// <summary>Returns all elements to apply toolbar changes to (multi-select aware).</summary>
     private IEnumerable<LabelElement> GetTargetElements()
     {
-        if (ViewModel.SelectedElements.Count > 1)
+        if (ViewModel.SelectedElements.Count >= 1)
             return ViewModel.SelectedElements;
         if (ViewModel.SelectedElement != null)
             return new[] { ViewModel.SelectedElement };
@@ -569,10 +569,7 @@ public partial class MainWindow : Window
 
     private void ApplyTextAlignment(Models.TextAlignment alignment)
     {
-        var targets = GetTargetElements().ToList();
-        if (targets.Count == 0) return;
-
-        foreach (var element in targets)
+        foreach (var element in GetTargetElements())
         {
             if (element is TextElement text)
             {
