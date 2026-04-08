@@ -304,49 +304,85 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void AlignLeft()
     {
-        if (SelectedElements.Count < 2) return;
-        var minX = SelectedElements.Min(e => e.X);
-        foreach (var e in SelectedElements) e.X = minX;
+        if (SelectedElements.Count >= 2)
+        {
+            var minX = SelectedElements.Min(e => e.X);
+            foreach (var e in SelectedElements) e.X = minX;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.X = 0;
+        }
     }
 
     [RelayCommand]
     private void AlignRight()
     {
-        if (SelectedElements.Count < 2) return;
-        var maxRight = SelectedElements.Max(e => e.X + e.Width);
-        foreach (var e in SelectedElements) e.X = maxRight - e.Width;
+        if (SelectedElements.Count >= 2)
+        {
+            var maxRight = SelectedElements.Max(e => e.X + e.Width);
+            foreach (var e in SelectedElements) e.X = maxRight - e.Width;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.X = Math.Max(0, CurrentDocument.WidthMm - SelectedElement.Width);
+        }
     }
 
     [RelayCommand]
     private void AlignTop()
     {
-        if (SelectedElements.Count < 2) return;
-        var minY = SelectedElements.Min(e => e.Y);
-        foreach (var e in SelectedElements) e.Y = minY;
+        if (SelectedElements.Count >= 2)
+        {
+            var minY = SelectedElements.Min(e => e.Y);
+            foreach (var e in SelectedElements) e.Y = minY;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.Y = 0;
+        }
     }
 
     [RelayCommand]
     private void AlignBottom()
     {
-        if (SelectedElements.Count < 2) return;
-        var maxBottom = SelectedElements.Max(e => e.Y + e.Height);
-        foreach (var e in SelectedElements) e.Y = maxBottom - e.Height;
+        if (SelectedElements.Count >= 2)
+        {
+            var maxBottom = SelectedElements.Max(e => e.Y + e.Height);
+            foreach (var e in SelectedElements) e.Y = maxBottom - e.Height;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.Y = Math.Max(0, CurrentDocument.HeightMm - SelectedElement.Height);
+        }
     }
 
     [RelayCommand]
     private void AlignCenterH()
     {
-        if (SelectedElements.Count < 2) return;
-        var avgCenterX = SelectedElements.Average(e => e.X + e.Width / 2);
-        foreach (var e in SelectedElements) e.X = avgCenterX - e.Width / 2;
+        if (SelectedElements.Count >= 2)
+        {
+            var avgCenterX = SelectedElements.Average(e => e.X + e.Width / 2);
+            foreach (var e in SelectedElements) e.X = avgCenterX - e.Width / 2;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.X = Math.Max(0, (CurrentDocument.WidthMm - SelectedElement.Width) / 2);
+        }
     }
 
     [RelayCommand]
     private void AlignCenterV()
     {
-        if (SelectedElements.Count < 2) return;
-        var avgCenterY = SelectedElements.Average(e => e.Y + e.Height / 2);
-        foreach (var e in SelectedElements) e.Y = avgCenterY - e.Height / 2;
+        if (SelectedElements.Count >= 2)
+        {
+            var avgCenterY = SelectedElements.Average(e => e.Y + e.Height / 2);
+            foreach (var e in SelectedElements) e.Y = avgCenterY - e.Height / 2;
+        }
+        else if (SelectedElement != null)
+        {
+            SelectedElement.Y = Math.Max(0, (CurrentDocument.HeightMm - SelectedElement.Height) / 2);
+        }
     }
 
     // ── Distribution ──
