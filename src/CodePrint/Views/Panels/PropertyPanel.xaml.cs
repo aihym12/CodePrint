@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -46,6 +47,9 @@ public partial class PropertyPanel : UserControl
                 AddCheckBox("斜体", text, nameof(TextElement.IsItalic));
                 AddCheckBox("下划线", text, nameof(TextElement.IsUnderline));
                 AddCheckBox("删除线", text, nameof(TextElement.IsStrikethrough));
+                AddAlignmentButtons("对齐方式", text);
+                AddComboBox("文字方向", text, nameof(TextElement.Direction),
+                    new[] { "Horizontal", "Vertical" });
                 AddPropertyField("文字颜色", text, nameof(TextElement.ForegroundColor));
                 AddPropertyField("背景颜色", text, nameof(TextElement.BackgroundColor));
                 AddPropertyField("字间距", text, nameof(TextElement.LetterSpacing));
@@ -213,6 +217,71 @@ public partial class PropertyPanel : UserControl
         cb.SetBinding(CheckBox.IsCheckedProperty, binding);
 
         ElementPropertiesPanel.Children.Add(cb);
+    }
+
+    private void AddAlignmentButtons(string label, TextElement source)
+    {
+        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
+        stack.Children.Add(new TextBlock
+        {
+            Text = label,
+            FontSize = 11,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            Margin = new Thickness(0, 0, 0, 2)
+        });
+
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal };
+
+        var alignments = new[]
+        {
+            (Models.TextAlignment.Left, "≡ 左对齐"),
+            (Models.TextAlignment.Center, "≡ 居中"),
+            (Models.TextAlignment.Right, "≡ 右对齐"),
+            (Models.TextAlignment.Justify, "≡ 两端")
+        };
+
+        var buttons = new List<Button>();
+
+        foreach (var (alignment, text) in alignments)
+        {
+            var btn = new Button
+            {
+                Content = text,
+                Style = (Style)FindResource("SmallActionButton"),
+                Margin = new Thickness(0, 0, 4, 0),
+                Tag = alignment
+            };
+
+            UpdateAlignmentButtonAppearance(btn, source.TextAlignment == alignment);
+
+            var capturedAlignment = alignment;
+            btn.Click += (s, e) =>
+            {
+                source.TextAlignment = capturedAlignment;
+                foreach (var b in buttons)
+                    UpdateAlignmentButtonAppearance(b, (Models.TextAlignment)b.Tag == capturedAlignment);
+            };
+
+            buttons.Add(btn);
+            buttonPanel.Children.Add(btn);
+        }
+
+        stack.Children.Add(buttonPanel);
+        ElementPropertiesPanel.Children.Add(stack);
+    }
+
+    private static void UpdateAlignmentButtonAppearance(Button button, bool isActive)
+    {
+        if (isActive)
+        {
+            button.Background = (System.Windows.Media.Brush)Application.Current.Resources["PrimaryBrush"];
+            button.Foreground = System.Windows.Media.Brushes.White;
+        }
+        else
+        {
+            button.Background = System.Windows.Media.Brushes.Transparent;
+            button.Foreground = (System.Windows.Media.Brush)Application.Current.Resources["TextPrimaryBrush"];
+        }
     }
 
     private void AddComboBox(string label, object source, string propertyName, string[] options)
