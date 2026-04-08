@@ -18,6 +18,15 @@ public partial class CanvasPanel : UserControl
     private double _elementStartX;
     private double _elementStartY;
 
+    // Resize state
+    private bool _isResizing;
+    private int _resizeHandleIndex = -1; // 0=TL, 1=TR, 2=BL, 3=BR
+    private Point _resizeStart;
+    private double _resizeStartX;
+    private double _resizeStartY;
+    private double _resizeStartWidth;
+    private double _resizeStartHeight;
+
     // Maps element Id to the rendered visual
     private readonly Dictionary<string, FrameworkElement> _elementVisuals = new();
 
@@ -286,6 +295,12 @@ public partial class CanvasPanel : UserControl
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
+        if (_isResizing && ViewModel?.SelectedElement != null)
+        {
+            HandleResizeMove(e);
+            return;
+        }
+
         if (!_isDragging || ViewModel?.SelectedElement == null) return;
 
         var pos = e.GetPosition(DesignCanvas);
@@ -305,8 +320,82 @@ public partial class CanvasPanel : UserControl
         UpdateSelectionVisuals();
     }
 
+    private void HandleResizeMove(MouseEventArgs e)
+    {
+        var element = ViewModel!.SelectedElement!;
+        var pos = e.GetPosition(DesignCanvas);
+        var dx = (pos.X - _resizeStart.X) / MmToPx;
+        var dy = (pos.Y - _resizeStart.Y) / MmToPx;
+
+        double newX = _resizeStartX;
+        double newY = _resizeStartY;
+        double newW = _resizeStartWidth;
+        double newH = _resizeStartHeight;
+
+        switch (_resizeHandleIndex)
+        {
+            case 0: // Top-Left
+                newX = _resizeStartX + dx;
+                newY = _resizeStartY + dy;
+                newW = _resizeStartWidth - dx;
+                newH = _resizeStartHeight - dy;
+                break;
+            case 1: // Top-Right
+                newY = _resizeStartY + dy;
+                newW = _resizeStartWidth + dx;
+                newH = _resizeStartHeight - dy;
+                break;
+            case 2: // Bottom-Left
+                newX = _resizeStartX + dx;
+                newW = _resizeStartWidth - dx;
+                newH = _resizeStartHeight + dy;
+                break;
+            case 3: // Bottom-Right
+                newW = _resizeStartWidth + dx;
+                newH = _resizeStartHeight + dy;
+                break;
+        }
+
+        // Enforce minimum size (1mm)
+        const double minSize = 1.0;
+        if (newW < minSize)
+        {
+            if (_resizeHandleIndex == 0 || _resizeHandleIndex == 2)
+                newX = _resizeStartX + _resizeStartWidth - minSize;
+            newW = minSize;
+        }
+        if (newH < minSize)
+        {
+            if (_resizeHandleIndex == 0 || _resizeHandleIndex == 1)
+                newY = _resizeStartY + _resizeStartHeight - minSize;
+            newH = minSize;
+        }
+
+        element.X = newX;
+        element.Y = newY;
+        element.Width = newW;
+        element.Height = newH;
+
+        // Update visual
+        if (_elementVisuals.TryGetValue(element.Id, out var resizeVisual))
+        {
+            Canvas.SetLeft(resizeVisual, element.X * MmToPx);
+            Canvas.SetTop(resizeVisual, element.Y * MmToPx);
+        }
+        RefreshElementVisual(element);
+    }
+
     private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_isResizing)
+        {
+            _isResizing = false;
+            _resizeHandleIndex = -1;
+            DesignCanvas.ReleaseMouseCapture();
+            UpdateSelectionVisuals();
+            return;
+        }
+
         if (_isDragging && ViewModel?.SelectedElement != null)
         {
             // Find the element visual and release mouse
@@ -537,18 +626,21 @@ public partial class CanvasPanel : UserControl
         DesignCanvas.Children.Add(border);
         _selectionHandles.Add(border);
 
-        // Draw 4 corner handles
+        // Draw 4 corner handles with resize cursors
         double handleSize = DesignConstants.HandleSize;
         var corners = new[]
         {
-            new Point(x - handleSize / 2, y - handleSize / 2),
-            new Point(x + w - handleSize / 2, y - handleSize / 2),
-            new Point(x - handleSize / 2, y + h - handleSize / 2),
-            new Point(x + w - handleSize / 2, y + h - handleSize / 2),
+            new Point(x - handleSize / 2, y - handleSize / 2),           // 0: Top-Left
+            new Point(x + w - handleSize / 2, y - handleSize / 2),       // 1: Top-Right
+            new Point(x - handleSize / 2, y + h - handleSize / 2),       // 2: Bottom-Left
+            new Point(x + w - handleSize / 2, y + h - handleSize / 2),   // 3: Bottom-Right
         };
 
-        foreach (var corner in corners)
+        var cursors = new[] { Cursors.SizeNWSE, Cursors.SizeNESW, Cursors.SizeNESW, Cursors.SizeNWSE };
+
+        for (int i = 0; i < corners.Length; i++)
         {
+            var handleIndex = i;
             var handle = new Rectangle
             {
                 Width = handleSize,
@@ -556,20 +648,49 @@ public partial class CanvasPanel : UserControl
                 Fill = Brushes.White,
                 Stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935")),
                 StrokeThickness = 1.5,
-                IsHitTestVisible = false
+                IsHitTestVisible = !element.IsLocked,
+                Cursor = cursors[i],
+                Tag = handleIndex
             };
-            Canvas.SetLeft(handle, corner.X);
-            Canvas.SetTop(handle, corner.Y);
+
+            handle.MouseLeftButtonDown += ResizeHandle_MouseLeftButtonDown;
+
+            Canvas.SetLeft(handle, corners[i].X);
+            Canvas.SetTop(handle, corners[i].Y);
             Panel.SetZIndex(handle, int.MaxValue);
             DesignCanvas.Children.Add(handle);
             _selectionHandles.Add(handle);
         }
     }
 
+    private void ResizeHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Rectangle handle || ViewModel?.SelectedElement == null) return;
+        if (handle.Tag is not int handleIndex) return;
+
+        var element = ViewModel.SelectedElement;
+        if (element.IsLocked) return;
+
+        _isResizing = true;
+        _resizeHandleIndex = handleIndex;
+        _resizeStart = e.GetPosition(DesignCanvas);
+        _resizeStartX = element.X;
+        _resizeStartY = element.Y;
+        _resizeStartWidth = element.Width;
+        _resizeStartHeight = element.Height;
+
+        DesignCanvas.CaptureMouse();
+        e.Handled = true;
+    }
+
     private void ClearSelectionHandles()
     {
         foreach (var handle in _selectionHandles)
+        {
+            if (handle.Tag is int)
+                handle.MouseLeftButtonDown -= ResizeHandle_MouseLeftButtonDown;
             DesignCanvas.Children.Remove(handle);
+        }
         _selectionHandles.Clear();
     }
 }
