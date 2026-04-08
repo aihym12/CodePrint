@@ -20,6 +20,9 @@
                             MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
                             MouseMove="Canvas_MouseMove"
                             MouseLeftButtonUp="Canvas_MouseLeftButtonUp"
+                            MouseRightButtonDown="Canvas_MouseRightButtonDown"
+                            MouseRightButtonUp="Canvas_MouseRightButtonUp"
+                            ContextMenuOpening="Canvas_ContextMenuOpening"
                             Drop="Canvas_Drop"
                             DragOver="Canvas_DragOver">
 

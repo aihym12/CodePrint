@@ -37,6 +37,12 @@ public partial class CanvasPanel : UserControl
     private TextBox? _inlineEditor;
     private LabelElement? _editingElement;
 
+    // Rubber band (marquee) selection state
+    private bool _isRubberBandSelecting;
+    private Point _rubberBandStart;
+    private Rectangle? _rubberBandRect;
+    private bool _didRubberBandDrag;
+
     public CanvasPanel()
     {
         InitializeComponent();
@@ -230,25 +236,6 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
-        // Ctrl+Click → toggle element in multi-selection
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-        {
-            if (ViewModel.SelectedElements.Contains(element))
-            {
-                ViewModel.SelectedElements.Remove(element);
-                if (ViewModel.SelectedElement == element)
-                    ViewModel.SelectedElement = ViewModel.SelectedElements.Count > 0 ? ViewModel.SelectedElements[0] : null;
-            }
-            else
-            {
-                ViewModel.SelectedElements.Add(element);
-                ViewModel.SelectedElement = element;
-            }
-            UpdateSelectionVisuals();
-            e.Handled = true;
-            return;
-        }
-
         // Normal click → single selection (clear multi-selection)
         ViewModel.SelectedElements.Clear();
         ViewModel.SelectedElements.Add(element);
@@ -320,6 +307,13 @@ public partial class CanvasPanel : UserControl
         if (_isResizing && ViewModel?.SelectedElement != null)
         {
             HandleResizeMove(e);
+            return;
+        }
+
+        // Rubber band selection: update rectangle and highlight elements
+        if (_isRubberBandSelecting && ViewModel != null)
+        {
+            UpdateRubberBand(e.GetPosition(DesignCanvas));
             return;
         }
 
@@ -426,6 +420,101 @@ public partial class CanvasPanel : UserControl
         }
 
         _isDragging = false;
+    }
+
+    // ── Right-Button Rubber Band (Marquee) Selection ──
+
+    private void Canvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        _isRubberBandSelecting = true;
+        _didRubberBandDrag = false;
+        _rubberBandStart = e.GetPosition(DesignCanvas);
+
+        // Create rubber band visual
+        _rubberBandRect = new Rectangle
+        {
+            Stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2")),
+            StrokeThickness = 1,
+            StrokeDashArray = new DoubleCollection { 4, 2 },
+            Fill = new SolidColorBrush(Color.FromArgb(30, 25, 118, 210)), // semi-transparent blue
+            IsHitTestVisible = false
+        };
+        Canvas.SetLeft(_rubberBandRect, _rubberBandStart.X);
+        Canvas.SetTop(_rubberBandRect, _rubberBandStart.Y);
+        _rubberBandRect.Width = 0;
+        _rubberBandRect.Height = 0;
+        Panel.SetZIndex(_rubberBandRect, int.MaxValue);
+        DesignCanvas.Children.Add(_rubberBandRect);
+
+        DesignCanvas.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void UpdateRubberBand(Point current)
+    {
+        if (_rubberBandRect == null) return;
+
+        var x = Math.Min(_rubberBandStart.X, current.X);
+        var y = Math.Min(_rubberBandStart.Y, current.Y);
+        var w = Math.Abs(current.X - _rubberBandStart.X);
+        var h = Math.Abs(current.Y - _rubberBandStart.Y);
+
+        // Mark as drag if moved more than a tiny threshold (3 px)
+        if (w > 3 || h > 3)
+            _didRubberBandDrag = true;
+
+        Canvas.SetLeft(_rubberBandRect, x);
+        Canvas.SetTop(_rubberBandRect, y);
+        _rubberBandRect.Width = w;
+        _rubberBandRect.Height = h;
+
+        // Build the selection rectangle in mm for hit-testing elements
+        var selRect = new Rect(x / MmToPx, y / MmToPx, w / MmToPx, h / MmToPx);
+
+        // Update selected elements in real-time
+        ViewModel!.SelectedElements.Clear();
+        foreach (var el in ViewModel.CurrentDocument.Elements)
+        {
+            var elRect = new Rect(el.X, el.Y, el.Width, el.Height);
+            if (selRect.IntersectsWith(elRect))
+                ViewModel.SelectedElements.Add(el);
+        }
+
+        ViewModel.SelectedElement = ViewModel.SelectedElements.Count > 0
+            ? ViewModel.SelectedElements[0]
+            : null;
+
+        UpdateSelectionVisuals();
+    }
+
+    private void Canvas_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isRubberBandSelecting) return;
+
+        _isRubberBandSelecting = false;
+        DesignCanvas.ReleaseMouseCapture();
+
+        // Remove rubber band visual
+        if (_rubberBandRect != null)
+        {
+            DesignCanvas.Children.Remove(_rubberBandRect);
+            _rubberBandRect = null;
+        }
+
+        UpdateSelectionVisuals();
+        e.Handled = true;
+    }
+
+    private void Canvas_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // Suppress the context menu if the user just performed a rubber band drag
+        if (_didRubberBandDrag)
+        {
+            e.Handled = true;
+            _didRubberBandDrag = false;
+        }
     }
 
     // ── Drag & Drop from ElementPanel ──
