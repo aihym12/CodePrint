@@ -32,10 +32,22 @@ public partial class ElementPanel : UserControl
         {
             _isDragStarted = true;
 
-            if (sender is Button btn && btn.CommandParameter is string elementType)
+            if (sender is Button btn && btn.Tag is string elementType)
             {
                 var data = new DataObject("ElementType", elementType);
                 DragDrop.DoDragDrop(btn, data, DragDropEffects.Copy);
+            }
+        }
+    }
+
+    private void ElementButton_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string elementType)
+        {
+            var window = Window.GetWindow(this);
+            if (window?.DataContext is ViewModels.MainViewModel viewModel)
+            {
+                viewModel.AddElementCommand.Execute(elementType);
             }
         }
     }
