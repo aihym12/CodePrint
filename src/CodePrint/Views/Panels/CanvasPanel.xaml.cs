@@ -299,6 +299,21 @@ public partial class CanvasPanel : UserControl
         e.Handled = true;
     }
 
+    private void ScrollViewer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Click on gray/white area outside the canvas → deselect all elements
+        CommitInlineEditing();
+
+        if (ViewModel != null)
+        {
+            ViewModel.SelectedElement = null;
+            ViewModel.SelectedElements.Clear();
+            ClearSelectionHandles();
+        }
+
+        e.Handled = true;
+    }
+
     private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         // Commit any active inline editing first
