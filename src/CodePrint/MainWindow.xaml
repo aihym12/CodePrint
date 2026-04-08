@@ -87,7 +87,8 @@
             </Border>
 
             <!-- Font Formatting Bar -->
-            <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+            <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                    MouseLeave="FontFormattingBar_MouseLeave">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
                         <ComboBox x:Name="FontFamilyCombo" Width="140" Margin="0,0,4,0" ToolTip="字体" SelectedIndex="0"
