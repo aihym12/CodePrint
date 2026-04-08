@@ -134,7 +134,7 @@ public static class CanvasRendererHelper
         var alignment = MapTextAlignment(element.TextAlignment);
 
         // Split content into paragraphs (explicit newlines), then wrap each paragraph
-        var paragraphs = element.Content.Split('\n');
+        var paragraphs = element.Content.Split(new[] { "\r\n", "\n" }, System.StringSplitOptions.None);
         var allLines = new List<string>();
         foreach (var paragraph in paragraphs)
         {
@@ -211,6 +211,9 @@ public static class CanvasRendererHelper
         var lines = new List<string>();
         int start = 0;
 
+        // Cache character widths to avoid repeated FormattedText creation
+        var charWidthCache = new Dictionary<char, double>();
+
         while (start < text.Length)
         {
             int count = 0;
@@ -218,17 +221,20 @@ public static class CanvasRendererHelper
 
             for (int i = start; i < text.Length; i++)
             {
-                // Measure character width
-                var ft = new FormattedText(
-                    text[i].ToString(),
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    typeface,
-                    fontSize,
-                    Brushes.Black,
-                    1.0);
-
-                double charWidth = ft.WidthIncludingTrailingWhitespace;
+                char ch = text[i];
+                if (!charWidthCache.TryGetValue(ch, out double charWidth))
+                {
+                    var ft = new FormattedText(
+                        ch.ToString(),
+                        CultureInfo.InvariantCulture,
+                        FlowDirection.LeftToRight,
+                        typeface,
+                        fontSize,
+                        Brushes.Black,
+                        1.0);
+                    charWidth = ft.WidthIncludingTrailingWhitespace;
+                    charWidthCache[ch] = charWidth;
+                }
                 double totalCharWidth = charWidth + (count > 0 ? letterSpacing : 0);
 
                 if (count > 0 && lineWidth + totalCharWidth > maxWidth)
