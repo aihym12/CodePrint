@@ -177,7 +177,7 @@ public partial class PdfCropViewModel : ObservableObject
     // ── Image density ──
 
     [ObservableProperty]
-    private DensityLevel _imageDensity = DensityLevel.Auto;
+    private DensityLevel _imageDensity = DensityLevel.Dark;
 
     /// <summary>Hint text showing the effective print DPI for the current density level.</summary>
     [ObservableProperty]
@@ -227,7 +227,7 @@ public partial class PdfCropViewModel : ObservableObject
         _customHeightMm = s.CustomHeightMm;
         _printLayoutIndex = s.PrintLayoutIndex;
         _applyCropToAllPages = s.ApplyCropToAllPages;
-        _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Auto;
+        _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Dark;
         _processingMode = Enum.TryParse<PdfProcessingMode>(s.ProcessingMode, out var m) ? m : PdfProcessingMode.PageCrop;
         LastPrinterName = s.LastPrinterName;
     }
