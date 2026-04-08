@@ -1,0 +1,131 @@
+<Window x:Class="CodePrint.Views.Dialogs.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:CodePrint.ViewModels"
+        xmlns:converters="clr-namespace:CodePrint.Converters"
+        Title="设置" Width="520" Height="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False">
+    <Window.DataContext>
+        <vm:SettingsViewModel/>
+    </Window.DataContext>
+    <Window.Resources>
+        <converters:LanguageDisplayConverter x:Key="LanguageDisplay"/>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- 语言设置 -->
+                <TextBlock Text="语言 / Language" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"
+                          Width="200" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource LanguageDisplay}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- 打印 DPI -->
+                <TextBlock Text="打印 DPI（清晰度）" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <ComboBox ItemsSource="{Binding DpiOptions}" SelectedItem="{Binding PrintDpi}"
+                              Width="100"/>
+                    <TextBlock Text="DPI" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#666"/>
+                </StackPanel>
+                <TextBlock Text="提示：203 适用于热敏打印机，300 适用于普通打印，600 为高质量打印" FontSize="11" Foreground="#999" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+                <!-- 默认纸张尺寸 -->
+                <TextBlock Text="默认标签尺寸" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding DefaultPaperWidthMm}" Padding="4" Width="80"/>
+                    <TextBlock Grid.Column="1" Text="×" VerticalAlignment="Center" Margin="6"/>
+                    <TextBox Grid.Column="2" Text="{Binding DefaultPaperHeightMm}" Padding="4" Width="80"/>
+                    <TextBlock Grid.Column="3" Text="mm" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </Grid>
+
+                <!-- 默认打印方向 -->
+                <TextBlock Text="默认打印方向" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="纵向" IsChecked="True" Margin="0,0,16,0"
+                                 x:Name="PortraitRadio" Checked="Portrait_Checked"/>
+                    <RadioButton Content="横向" x:Name="LandscapeRadio" Checked="Landscape_Checked"/>
+                </StackPanel>
+
+                <Separator Margin="0,16"/>
+
+                <!-- 自动保存 -->
+                <TextBlock Text="自动保存" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <CheckBox Content="启用自动保存" IsChecked="{Binding AutoSaveEnabled}" Margin="0,0,0,4"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="保存间隔（秒）：" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding AutoSaveIntervalSeconds}" Padding="4" Width="60"/>
+                </StackPanel>
+
+                <Separator Margin="0,16"/>
+
+                <!-- 网格与对齐 -->
+                <TextBlock Text="网格与对齐" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <CheckBox Content="显示网格" IsChecked="{Binding ShowGrid}" Margin="0,0,0,4"/>
+                <CheckBox Content="对齐到网格" IsChecked="{Binding SnapToGrid}" Margin="0,0,0,4"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="网格间距（mm）：" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding GridSpacingMm}" Padding="4" Width="60"/>
+                </StackPanel>
+
+                <Separator Margin="0,16"/>
+
+                <!-- 移动步进 -->
+                <TextBlock Text="移动步进" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,4,0">
+                        <TextBlock Text="方向键步进 (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NudgeDistanceMm}" Padding="4"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                        <TextBlock Text="Shift+方向键步进 (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding LargeNudgeDistanceMm}" Padding="4"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Margin="0,16"/>
+
+                <!-- 默认背景色 -->
+                <TextBlock Text="默认背景颜色" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="32" Height="32" BorderBrush="#CCC" BorderThickness="1" CornerRadius="4"
+                            Background="{Binding DefaultBackgroundColor, Converter={StaticResource ColorToBrush}}"/>
+                    <TextBox Text="{Binding DefaultBackgroundColor}" Padding="4" Margin="8,0,0,0" Width="100" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Separator Grid.Row="1" Margin="0,8"/>
+
+        <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Button Content="恢复默认" HorizontalAlignment="Left" Padding="8,6" Command="{Binding ResetDefaultsCommand}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="取消" Width="80" Padding="8,6" Margin="0,0,8,0" IsCancel="True" Command="{Binding CancelCommand}"/>
+                <Button Content="保存" Width="80" Padding="8,6" Style="{StaticResource PrimaryButton}" IsDefault="True" Command="{Binding SaveCommand}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
