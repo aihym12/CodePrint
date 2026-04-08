@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CodePrint.Helpers;
 using CodePrint.Models;
+using CodePrint.Services;
 
 namespace CodePrint.ViewModels;
 
@@ -122,9 +123,9 @@ public partial class PrintViewModel : ObservableObject
         RequestClose?.Invoke(false);
     }
 
-    /// <summary>Print resolution in DPI. Higher values produce sharper output on thermal printers like Qirui QR-488 (203 DPI native).
+    /// <summary>Print resolution in DPI. Read from application settings. Higher values produce sharper output on thermal printers like Qirui QR-488 (203 DPI native).
     /// Rendering at 600 DPI and letting the printer driver downsample produces significantly sharper text and barcodes.</summary>
-    private const double PrintDpi = 600;
+    private static int PrintDpi => AppSettingsService.Current.PrintDpi;
 
     /// <summary>Renders the current document into a visual element suitable for printing.</summary>
     private DrawingVisual RenderDocumentVisual()

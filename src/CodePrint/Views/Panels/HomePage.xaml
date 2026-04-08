@@ -33,7 +33,7 @@
                             Command="{Binding SelectNavItemCommand}" CommandParameter="新建标签"/>
                     <Button Content="模板选择" Style="{StaticResource TitleBarButton}" FontSize="13"
                             Command="{Binding OpenTemplateLibraryCommand}"/>
-                    <Button Content="设置" Style="{StaticResource TitleBarButton}" FontSize="13"/>
+                    <Button Content="设置" Style="{StaticResource TitleBarButton}" FontSize="13" Click="Settings_Click"/>
                     <Border Background="#FFFFFF" CornerRadius="2" Padding="3,1" Margin="2,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="new" Foreground="{StaticResource PrimaryBrush}" FontSize="9" FontWeight="Bold"/>
                     </Border>

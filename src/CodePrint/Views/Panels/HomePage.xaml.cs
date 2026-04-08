@@ -33,4 +33,10 @@ public partial class HomePage : UserControl
     {
         ViewModel.OpenPhotoPrintCommand.Execute(null);
     }
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SettingsDialog { Owner = Window.GetWindow(this) };
+        dialog.ShowDialog();
+    }
 }
