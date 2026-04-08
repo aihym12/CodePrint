@@ -601,6 +601,15 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>When the mouse leaves the entire Font Formatting Bar row, move focus away so all pending values are applied.</summary>
+    private void FontFormattingBar_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is Border border && border.IsKeyboardFocusWithin)
+        {
+            Keyboard.ClearFocus();
+        }
+    }
+
     /// <summary>When the mouse leaves a toolbar TextBox, move focus away so the value is applied via LostFocus.</summary>
     private void ToolbarTextBox_MouseLeave(object sender, MouseEventArgs e)
     {
