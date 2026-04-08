@@ -8,6 +8,9 @@ namespace CodePrint.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    /// <summary>1 typographic point = 25.4/72 mm.</summary>
+    private const double MmPerPoint = 25.4 / 72.0;
+
     private readonly UndoRedoService _undoRedo = new();
     private LabelElement? _clipboard;
     private string? _currentFilePath;
@@ -494,7 +497,7 @@ public partial class MainViewModel : ObservableObject
                 // line.Height is in image pixels; converting to mm via scale,
                 // then mm to pt (1pt = 25.4/72 mm).
                 double lineHeightMm = line.Height * scale;
-                double fontSizePt = lineHeightMm / (25.4 / 72.0);
+                double fontSizePt = lineHeightMm / MmPerPoint;
                 fontSizePt = Math.Max(6, Math.Round(fontSizePt, 1));
 
                 var textElement = new TextElement

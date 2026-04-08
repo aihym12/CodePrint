@@ -65,6 +65,9 @@ public static class OcrService
         var lines = new List<OcrTextLine>();
         foreach (var ocrLine in result.Lines)
         {
+            if (ocrLine.Words.Count == 0)
+                continue;
+
             // Compute the bounding box that encloses all words in this line
             double minX = double.MaxValue, minY = double.MaxValue;
             double maxX = double.MinValue, maxY = double.MinValue;
