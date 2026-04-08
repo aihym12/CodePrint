@@ -74,6 +74,29 @@ public static class CanvasRendererHelper
             }
         };
 
+        // Apply line spacing via LineHeight
+        if (element.LineSpacing > 0)
+        {
+            tb.LineHeight = element.FontSize * element.LineSpacing;
+            tb.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
+        }
+
+        // Apply character spacing via per-character horizontal offsets
+        if (element.LetterSpacing != 0 && !string.IsNullOrEmpty(element.Content))
+        {
+            var textEffects = new TextEffectCollection();
+            for (int i = 1; i < element.Content.Length; i++)
+            {
+                textEffects.Add(new TextEffect
+                {
+                    PositionStart = i,
+                    PositionCount = 1,
+                    Transform = new TranslateTransform(element.LetterSpacing * i, 0)
+                });
+            }
+            tb.TextEffects = textEffects;
+        }
+
         if (element.IsUnderline)
             tb.TextDecorations = TextDecorations.Underline;
         if (element.IsStrikethrough)

@@ -212,13 +212,31 @@
                                         <Border.Tag>
                                             <Binding Path="Id"/>
                                         </Border.Tag>
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <TextBlock Text="🏷" FontSize="40" HorizontalAlignment="Center"
-                                                       Foreground="#CCC"/>
-                                            <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#999"
-                                                       HorizontalAlignment="Center" Margin="0,8,0,0"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="180"/>
-                                        </StackPanel>
+                                        <Grid>
+                                            <!-- 标签内容缩略图 (有元素时显示) -->
+                                            <Viewbox Stretch="Uniform" Margin="8">
+                                                <Image Source="{Binding Converter={StaticResource LabelThumbnail}}"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Viewbox>
+                                            <!-- 空标签占位符 (无元素时显示) -->
+                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Elements.Count}" Value="0">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="🏷" FontSize="40" HorizontalAlignment="Center"
+                                                           Foreground="#CCC"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#999"
+                                                           HorizontalAlignment="Center" Margin="0,8,0,0"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </Border>
 
                                     <!-- 标签信息 -->

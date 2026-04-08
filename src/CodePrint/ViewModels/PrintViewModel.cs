@@ -122,6 +122,9 @@ public partial class PrintViewModel : ObservableObject
         RequestClose?.Invoke(false);
     }
 
+    /// <summary>Print resolution in DPI. Higher values produce sharper output on thermal printers.</summary>
+    private const double PrintDpi = 300;
+
     /// <summary>Renders the current document into a visual element suitable for printing.</summary>
     private DrawingVisual RenderDocumentVisual()
     {
@@ -136,7 +139,7 @@ public partial class PrintViewModel : ObservableObject
             ? Brushes.White
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString(Document.BackgroundColor));
 
-        // Render label content to a bitmap
+        // Render label content to a bitmap at high DPI for sharp printing
         var canvas = new Canvas { Width = docWidth, Height = docHeight };
         foreach (var element in Document.Elements.OrderBy(e => e.ZIndex))
         {
@@ -144,12 +147,21 @@ public partial class PrintViewModel : ObservableObject
             CanvasRendererHelper.RenderElement(canvas, element);
         }
 
+        // Enable high-quality text rendering
+        TextOptions.SetTextRenderingMode(canvas, TextRenderingMode.ClearType);
+        TextOptions.SetTextFormattingMode(canvas, TextFormattingMode.Ideal);
+        RenderOptions.SetBitmapScalingMode(canvas, BitmapScalingMode.HighQuality);
+
         canvas.Measure(new Size(docWidth, docHeight));
         canvas.Arrange(new Rect(0, 0, docWidth, docHeight));
         canvas.UpdateLayout();
 
+        // Render at high DPI for sharp print output (e.g. 300 DPI instead of 96)
+        double dpiScale = PrintDpi / 96.0;
+        int bitmapWidth = (int)Math.Max(1, docWidth * dpiScale);
+        int bitmapHeight = (int)Math.Max(1, docHeight * dpiScale);
         var renderBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
-            (int)Math.Max(1, docWidth), (int)Math.Max(1, docHeight), 96, 96, PixelFormats.Pbgra32);
+            bitmapWidth, bitmapHeight, PrintDpi, PrintDpi, PixelFormats.Pbgra32);
         renderBitmap.Render(canvas);
 
         int rows = Math.Max(1, Settings.LabelsPerRow);
