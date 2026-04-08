@@ -44,8 +44,7 @@ public partial class ElementPanel : UserControl
     {
         if (sender is Button btn && btn.Tag is string elementType)
         {
-            var window = Window.GetWindow(this);
-            if (window?.DataContext is ViewModels.MainViewModel viewModel)
+            if (DataContext is ViewModels.MainViewModel viewModel)
             {
                 viewModel.AddElementCommand.Execute(elementType);
             }
@@ -61,8 +60,7 @@ public partial class ElementPanel : UserControl
             var addItem = new MenuItem { Header = "添加到画布" };
             addItem.Click += (_, _) =>
             {
-                var window = Window.GetWindow(this);
-                if (window?.DataContext is ViewModels.MainViewModel viewModel)
+                if (DataContext is ViewModels.MainViewModel viewModel)
                 {
                     viewModel.AddElementCommand.Execute(elementType);
                 }
@@ -77,8 +75,7 @@ public partial class ElementPanel : UserControl
 
     private void ImportImageAsText_Click(object sender, RoutedEventArgs e)
     {
-        var window = Window.GetWindow(this);
-        if (window?.DataContext is ViewModels.MainViewModel viewModel)
+        if (DataContext is ViewModels.MainViewModel viewModel)
         {
             viewModel.ImportImageAsTextCommand.Execute(null);
         }
