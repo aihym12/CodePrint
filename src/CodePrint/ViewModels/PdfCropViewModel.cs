@@ -658,10 +658,13 @@ public partial class PdfCropViewModel : ObservableObject
             return (x, y, w, h);
         }
 
-        // Auto mode: crop from top-left corner, sized to the selected paper dimensions
+        // Auto mode: center the crop rectangle on the page so content is
+        // evenly trimmed from both sides when the page exceeds the paper size.
         double cropW = Math.Min(PaperWidthMm, pageWidthMm);
         double cropH = Math.Min(PaperHeightMm, pageHeightMm);
-        return (0, 0, cropW, cropH);
+        double cropX = Math.Max(0, (pageWidthMm - cropW) / 2.0);
+        double cropY = Math.Max(0, (pageHeightMm - cropH) / 2.0);
+        return (cropX, cropY, cropW, cropH);
     }
 
     /// <summary>Renders a PDF page for printing, applying crop when in PageCrop mode.</summary>
