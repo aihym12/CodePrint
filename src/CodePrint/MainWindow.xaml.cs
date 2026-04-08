@@ -185,7 +185,9 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        // 返回主页而不是关闭应用
+        SaveCurrentDocumentToStorage();
+        ShowView("Home");
     }
 
     private void LabelSettings_Click(object sender, RoutedEventArgs e)
