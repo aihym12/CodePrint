@@ -615,8 +615,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Runs OCR on the specified image and creates TextElement objects
-    /// for each recognized line, positioned and sized to match the original layout.
+    /// Imports the specified image as a template element (auto-scaled to fit the document),
+    /// then runs OCR on it and creates editable TextElement objects for each recognized line,
+    /// positioned and sized to match the original layout.
     /// </summary>
     /// <param name="imagePath">Absolute path to the image file.</param>
     /// <param name="targetWidthMm">Target width in mm (usually document width).</param>
@@ -629,17 +630,41 @@ public partial class MainViewModel : ObservableObject
         {
             var (lines, imgWidth, imgHeight) = await Services.OcrService.RecognizeAsync(imagePath);
 
-            if (lines.Count == 0)
-            {
-                StatusText = "未识别到文字";
-                return;
-            }
-
-            // Scale factor: map image pixel coordinates to document mm coordinates.
-            // Fit the image proportionally into the document area.
+            // Scale factor: fit the image proportionally into the document area.
             double scaleX = targetWidthMm / imgWidth;
             double scaleY = targetHeightMm / imgHeight;
             double scale = Math.Min(scaleX, scaleY);
+
+            // Scaled image dimensions in mm.
+            double scaledWidthMm = imgWidth * scale;
+            double scaledHeightMm = imgHeight * scale;
+
+            // Center the scaled image within the document area.
+            double offsetX = (targetWidthMm - scaledWidthMm) / 2.0;
+            double offsetY = (targetHeightMm - scaledHeightMm) / 2.0;
+
+            // Add the image as a bottom-layer template element so it is visible
+            // on the canvas and the extracted text elements are overlaid on top.
+            var imageElement = new ImageElement
+            {
+                Name = "导入图片",
+                X = offsetX,
+                Y = offsetY,
+                Width = scaledWidthMm,
+                Height = scaledHeightMm,
+                ImagePath = imagePath,
+                MaintainAspectRatio = true,
+                ZIndex = 0
+            };
+            var imageAction = new AddElementAction(CurrentDocument.Elements, imageElement);
+            _undoRedo.Execute(imageAction);
+
+            if (lines.Count == 0)
+            {
+                SelectedElement = imageElement;
+                StatusText = "图片已导入，未识别到文字";
+                return;
+            }
 
             // OCR bounding boxes include extra padding around characters
             // (ascenders, descenders, line gap). Apply a correction factor
@@ -667,8 +692,9 @@ public partial class MainViewModel : ObservableObject
                 var textElement = new TextElement
                 {
                     Name = $"识别文本{i + 1}",
-                    X = line.X * scale,
-                    Y = line.Y * scale,
+                    // Add the image offset so text elements are aligned over the image.
+                    X = offsetX + line.X * scale,
+                    Y = offsetY + line.Y * scale,
                     Width = elementWidthMm,
                     Height = lineHeightMm,
                     Content = line.Text,
