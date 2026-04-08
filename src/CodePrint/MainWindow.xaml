@@ -3,10 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:CodePrint.ViewModels"
         xmlns:panels="clr-namespace:CodePrint.Views.Panels"
-        Title="番茄标签" Width="1400" Height="900"
+        Title="小茗标签" Width="1400" Height="900"
         MinWidth="1280" MinHeight="720"
         WindowStartupLocation="CenterScreen"
-        WindowState="Maximized">
+        WindowState="Maximized"
+        Icon="app.ico">
 
     <Grid>
         <!-- Home Page (visible by default) -->
@@ -32,8 +33,8 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                        <TextBlock Text="🍅" FontSize="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="番茄标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <Image Source="/app.ico" Width="20" Height="20" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <TextBlock Text="小茗标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <TextBlock Grid.Column="1" Text="{Binding DocumentTitle}" Foreground="White" FontSize="13"

@@ -24,8 +24,8 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
-                    <TextBlock Text="🍅" FontSize="20" VerticalAlignment="Center"/>
-                    <TextBlock Text="番茄标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,24,0" VerticalAlignment="Center"/>
+                    <Image Source="/app.ico" Width="20" Height="20" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="小茗标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,24,0" VerticalAlignment="Center"/>
                     <Button Content="新建标签" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"/>
                     <Button Content="模板选择" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"/>
                     <Button Content="设置" Style="{StaticResource TitleBarButton}" FontSize="13"/>

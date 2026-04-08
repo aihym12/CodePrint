@@ -7,11 +7,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <AssemblyTitle>番茄标签</AssemblyTitle>
-    <Product>番茄标签</Product>
+    <AssemblyTitle>小茗标签</AssemblyTitle>
+    <Product>小茗标签</Product>
     <Description>标签设计与打印软件</Description>
     <Version>1.0.0</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />

@@ -60,8 +60,8 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
-                    <TextBlock Text="🍅" FontSize="20" VerticalAlignment="Center"/>
-                    <TextBlock Text="番茄标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <Image Source="/app.ico" Width="20" Height="20" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="小茗标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock Text=" — PDF剪裁与打印" Foreground="#FFFFFFCC" FontSize="14" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </StackPanel>
 

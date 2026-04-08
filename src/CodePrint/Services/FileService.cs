@@ -6,7 +6,7 @@ using CodePrint.Models;
 namespace CodePrint.Services;
 
 /// <summary>
-/// Handles saving and loading label documents in the .btq (番茄标签) format.
+/// Handles saving and loading label documents in the .btq (小茗标签) format.
 /// The .btq format is JSON-based for readability and compatibility.
 /// </summary>
 public static class FileService
@@ -20,7 +20,7 @@ public static class FileService
     };
 
     public const string FileExtension = ".btq";
-    public const string FileFilter = "番茄标签文件 (*.btq)|*.btq|所有文件 (*.*)|*.*";
+    public const string FileFilter = "小茗标签文件 (*.btq)|*.btq|所有文件 (*.*)|*.*";
 
     /// <summary>
     /// Saves a label document to a .btq file.
