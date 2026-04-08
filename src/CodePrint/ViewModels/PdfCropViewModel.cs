@@ -493,7 +493,7 @@ public partial class PdfCropViewModel : ObservableObject
 
                     for (int c = 0; c < columns && g + c < pageIndices.Count; c++)
                     {
-                        var img = await _pdfService.RenderPageAsync(pageIndices[g + c], dpi);
+                        var img = await RenderPageForPrintAsync(pageIndices[g + c], dpi);
                         if (img != null)
                         {
                             var imgCtrl = new System.Windows.Controls.Image
@@ -501,7 +501,7 @@ public partial class PdfCropViewModel : ObservableObject
                                 Source = img,
                                 Width = perColumnW,
                                 Height = pageH,
-                                Stretch = Stretch.Fill,
+                                Stretch = Stretch.Uniform,
                                 UseLayoutRounding = true,
                                 SnapsToDevicePixels = true
                             };
@@ -618,7 +618,18 @@ public partial class PdfCropViewModel : ObservableObject
         try
         {
             var dpi = GetRenderDpi();
-            PreviewImage = await _pdfService.RenderPageAsync(CurrentPageIndex, dpi);
+
+            if (ProcessingMode == PdfProcessingMode.PageCrop && IsNextStepVisible)
+            {
+                // Show cropped preview so the user sees exactly what will be printed
+                var crop = GetCropRect(CurrentPageIndex);
+                PreviewImage = await _pdfService.RenderPageCroppedAsync(
+                    CurrentPageIndex, dpi, crop.X, crop.Y, crop.Width, crop.Height);
+            }
+            else
+            {
+                PreviewImage = await _pdfService.RenderPageAsync(CurrentPageIndex, dpi);
+            }
         }
         catch (Exception ex)
         {
@@ -626,12 +637,52 @@ public partial class PdfCropViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Calculates the crop rectangle in millimeters for the given page based on
+    /// the current processing mode and crop settings.
+    /// For Auto mode: crops from top-left, sized to the selected paper dimensions
+    /// (capped to actual page dimensions).
+    /// For Manual mode: uses user-specified CropX/Y/Width/Height.
+    /// </summary>
+    private (double X, double Y, double Width, double Height) GetCropRect(int pageIndex)
+    {
+        var (pageWidthMm, pageHeightMm) = _pdfService.GetPageSizeMm(pageIndex);
+
+        if (CropMode == CropMode.Manual)
+        {
+            // Use manual crop settings, clamped to page bounds
+            double x = Math.Max(0, Math.Min(CropX, pageWidthMm));
+            double y = Math.Max(0, Math.Min(CropY, pageHeightMm));
+            double w = Math.Max(1, Math.Min(CropWidth, pageWidthMm - x));
+            double h = Math.Max(1, Math.Min(CropHeight, pageHeightMm - y));
+            return (x, y, w, h);
+        }
+
+        // Auto mode: crop from top-left corner, sized to the selected paper dimensions
+        double cropW = Math.Min(PaperWidthMm, pageWidthMm);
+        double cropH = Math.Min(PaperHeightMm, pageHeightMm);
+        return (0, 0, cropW, cropH);
+    }
+
+    /// <summary>Renders a PDF page for printing, applying crop when in PageCrop mode.</summary>
+    private async Task<BitmapSource?> RenderPageForPrintAsync(int pageIndex, double dpi)
+    {
+        if (ProcessingMode == PdfProcessingMode.PageCrop)
+        {
+            var crop = GetCropRect(pageIndex);
+            return await _pdfService.RenderPageCroppedAsync(
+                pageIndex, dpi, crop.X, crop.Y, crop.Width, crop.Height);
+        }
+
+        return await _pdfService.RenderPageAsync(pageIndex, dpi);
+    }
+
     private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double pageW, double pageH, double originX, double originY)
     {
         var page = new FixedPage { Width = pageW, Height = pageH };
 
         var dpi = GetPrintDpi();
-        var img = await _pdfService.RenderPageAsync(pageIndex, dpi);
+        var img = await RenderPageForPrintAsync(pageIndex, dpi);
 
         if (img != null)
         {
@@ -643,7 +694,7 @@ public partial class PdfCropViewModel : ObservableObject
                 Source = img,
                 Width = pageW,
                 Height = pageH,
-                Stretch = Stretch.Fill,
+                Stretch = Stretch.Uniform,
                 UseLayoutRounding = true,
                 SnapsToDevicePixels = true
             };

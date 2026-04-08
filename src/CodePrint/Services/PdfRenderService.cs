@@ -63,6 +63,60 @@ public class PdfRenderService
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders a cropped region of a PDF page to a BitmapSource at the specified DPI.
+    /// The crop rectangle is specified in millimeters from the top-left corner of the page.
+    /// </summary>
+    public async Task<BitmapSource> RenderPageCroppedAsync(int pageIndex, double dpi,
+        double cropXMm, double cropYMm, double cropWidthMm, double cropHeightMm)
+    {
+        if (_pdfDocument == null)
+            throw new InvalidOperationException("PDF未加载");
+
+        using var page = _pdfDocument.GetPage((uint)pageIndex);
+        var stream = new InMemoryRandomAccessStream();
+
+        // Convert crop rect from mm to DIPs (1 DIP = 1/96 inch, 1 inch = 25.4mm)
+        const double mmToDip = 96.0 / 25.4;
+        double srcX = cropXMm * mmToDip;
+        double srcY = cropYMm * mmToDip;
+        double srcW = cropWidthMm * mmToDip;
+        double srcH = cropHeightMm * mmToDip;
+
+        // Clamp to page bounds
+        srcX = Math.Max(0, Math.Min(srcX, page.Size.Width));
+        srcY = Math.Max(0, Math.Min(srcY, page.Size.Height));
+        srcW = Math.Max(1, Math.Min(srcW, page.Size.Width - srcX));
+        srcH = Math.Max(1, Math.Min(srcH, page.Size.Height - srcY));
+
+        var scale = dpi / 96.0;
+        var options = new PdfPageRenderOptions
+        {
+            SourceRect = new Windows.Foundation.Rect(srcX, srcY, srcW, srcH),
+            DestinationWidth = (uint)Math.Max(1, srcW * scale),
+            DestinationHeight = (uint)Math.Max(1, srcH * scale),
+            BackgroundColor = new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 }
+        };
+
+        await page.RenderToStreamAsync(stream, options);
+        stream.Seek(0);
+
+        using var reader = new DataReader(stream);
+        await reader.LoadAsync((uint)stream.Size);
+        var bytes = new byte[stream.Size];
+        reader.ReadBytes(bytes);
+
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.StreamSource = new MemoryStream(bytes);
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.EndInit();
+        bitmap.Freeze();
+
+        stream.Dispose();
+        return bitmap;
+    }
+
     /// <summary>Gets the page dimensions in millimeters.</summary>
     public (double WidthMm, double HeightMm) GetPageSizeMm(int pageIndex)
     {
