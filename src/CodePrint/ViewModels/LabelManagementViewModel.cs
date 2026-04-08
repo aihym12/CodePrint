@@ -137,6 +137,15 @@ public partial class LabelManagementViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void RenameLabel((LabelDocument doc, string newName) args)
+    {
+        args.doc.Name = args.newName;
+        args.doc.ModifiedAt = DateTime.Now;
+        LabelStorageService.Save(args.doc);
+        ApplyFilter();
+    }
+
+    [RelayCommand]
     private void DeleteLabel(LabelDocument? label)
     {
         if (label == null) return;

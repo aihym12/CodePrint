@@ -245,9 +245,16 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
+                                        <!-- 显示模式：双击可编辑名称 -->
                                         <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis" Foreground="#333"
-                                                   VerticalAlignment="Center"/>
+                                                   VerticalAlignment="Center"
+                                                   MouseLeftButtonDown="LabelName_MouseDown"/>
+                                        <!-- 编辑模式：输入框 -->
+                                        <TextBox FontSize="12" VerticalAlignment="Center"
+                                                 Visibility="Collapsed" Padding="0" Margin="0"
+                                                 LostFocus="LabelNameEdit_LostFocus"
+                                                 KeyDown="LabelNameEdit_KeyDown"/>
                                         <TextBlock Grid.Column="1" VerticalAlignment="Center"
                                                    FontSize="11" Foreground="#999">
                                             <Run Text="{Binding WidthMm, StringFormat={}{0:F0}}"/>
