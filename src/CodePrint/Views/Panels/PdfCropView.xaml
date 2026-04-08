@@ -269,6 +269,8 @@
                             <RadioButton Style="{StaticResource DensityToggle}" GroupName="Density"
                                          Content="浓" Tag="Dark" Checked="Density_Checked"/>
                         </StackPanel>
+                        <TextBlock Text="{Binding DensityHintText}" FontSize="11" Foreground="#888"
+                                   Margin="0,4,0,0"/>
 
                         <!-- Spacer to push buttons to bottom -->
                         <Grid Height="40"/>
