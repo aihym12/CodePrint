@@ -46,19 +46,19 @@
 
                 <TextBlock Text="打印范围" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
                 <StackPanel>
-                    <RadioButton Content="全部" IsChecked="True" Margin="0,0,0,4"/>
-                    <RadioButton Content="当前页" Margin="0,0,0,4"/>
+                    <RadioButton x:Name="RangeAllRadio" Content="全部" IsChecked="True" Margin="0,0,0,4" Checked="RangeAll_Checked"/>
+                    <RadioButton x:Name="RangeCurrentRadio" Content="当前页" Margin="0,0,0,4" Checked="RangeCurrent_Checked"/>
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton Content="自定义页码" Margin="0,0,8,0"/>
+                        <RadioButton x:Name="RangeCustomRadio" Content="自定义页码" Margin="0,0,8,0" Checked="RangeCustom_Checked"/>
                         <TextBox Width="100" Padding="4" Text="{Binding Settings.CustomPageRange}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <TextBlock Text="色彩模式" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Content="彩色" IsChecked="True" Margin="0,0,16,0"/>
-                    <RadioButton Content="黑白" Margin="0,0,16,0"/>
-                    <RadioButton Content="灰度"/>
+                    <RadioButton x:Name="ColorModeColorRadio" Content="彩色" IsChecked="True" Margin="0,0,16,0" Checked="ColorModeColor_Checked"/>
+                    <RadioButton x:Name="ColorModeBWRadio" Content="黑白" Margin="0,0,16,0" Checked="ColorModeBW_Checked"/>
+                    <RadioButton x:Name="ColorModeGrayRadio" Content="灰度" Checked="ColorModeGray_Checked"/>
                 </StackPanel>
 
                 <TextBlock Text="每页标签数" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
