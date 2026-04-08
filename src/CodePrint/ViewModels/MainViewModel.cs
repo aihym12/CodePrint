@@ -211,7 +211,13 @@ public partial class MainViewModel : ObservableObject
     private void RotateSelected()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.Rotation = (SelectedElement.Rotation + 90) % 360;
+        {
+            var oldRotation = SelectedElement.Rotation;
+            var newRotation = (oldRotation + 90) % 360;
+            var action = new PropertyChangeAction<double>(SelectedElement, $"旋转 {SelectedElement.Name}",
+                (el, v) => el.Rotation = v, oldRotation, newRotation);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
@@ -275,28 +281,44 @@ public partial class MainViewModel : ObservableObject
     private void BringToFront()
     {
         if (SelectedElement == null) return;
+        var oldZ = SelectedElement.ZIndex;
         var maxZ = CurrentDocument.Elements.Count > 0 ? CurrentDocument.Elements.Max(e => e.ZIndex) : 0;
-        SelectedElement.ZIndex = maxZ + 1;
+        var newZ = maxZ + 1;
+        var action = new PropertyChangeAction<int>(SelectedElement, $"置顶 {SelectedElement.Name}",
+            (el, v) => el.ZIndex = v, oldZ, newZ);
+        _undoRedo.Execute(action);
     }
 
     [RelayCommand]
     private void SendToBack()
     {
         if (SelectedElement == null) return;
+        var oldZ = SelectedElement.ZIndex;
         var minZ = CurrentDocument.Elements.Count > 0 ? CurrentDocument.Elements.Min(e => e.ZIndex) : 0;
-        SelectedElement.ZIndex = minZ - 1;
+        var newZ = minZ - 1;
+        var action = new PropertyChangeAction<int>(SelectedElement, $"置底 {SelectedElement.Name}",
+            (el, v) => el.ZIndex = v, oldZ, newZ);
+        _undoRedo.Execute(action);
     }
 
     [RelayCommand]
     private void MoveLayerUp()
     {
-        if (SelectedElement != null) SelectedElement.ZIndex++;
+        if (SelectedElement == null) return;
+        var oldZ = SelectedElement.ZIndex;
+        var action = new PropertyChangeAction<int>(SelectedElement, $"上移图层 {SelectedElement.Name}",
+            (el, v) => el.ZIndex = v, oldZ, oldZ + 1);
+        _undoRedo.Execute(action);
     }
 
     [RelayCommand]
     private void MoveLayerDown()
     {
-        if (SelectedElement != null) SelectedElement.ZIndex--;
+        if (SelectedElement == null) return;
+        var oldZ = SelectedElement.ZIndex;
+        var action = new PropertyChangeAction<int>(SelectedElement, $"下移图层 {SelectedElement.Name}",
+            (el, v) => el.ZIndex = v, oldZ, oldZ - 1);
+        _undoRedo.Execute(action);
     }
 
     // ── Alignment ──
@@ -307,11 +329,17 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var minX = SelectedElements.Min(e => e.X);
-            foreach (var e in SelectedElements) e.X = minX;
+            var actions = SelectedElements
+                .Where(e => e.X != minX)
+                .Select(e => new MoveElementAction(e, e.X, e.Y, minX, e.Y))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("左对齐", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.X = 0;
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, 0, SelectedElement.Y);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -321,11 +349,19 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var maxRight = SelectedElements.Max(e => e.X + e.Width);
-            foreach (var e in SelectedElements) e.X = maxRight - e.Width;
+            var actions = SelectedElements
+                .Select(e => { var newX = maxRight - e.Width; return (el: e, newX); })
+                .Where(t => t.el.X != t.newX)
+                .Select(t => new MoveElementAction(t.el, t.el.X, t.el.Y, t.newX, t.el.Y))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("右对齐", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.X = Math.Max(0, CurrentDocument.WidthMm - SelectedElement.Width);
+            var newX = Math.Max(0, CurrentDocument.WidthMm - SelectedElement.Width);
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, newX, SelectedElement.Y);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -335,11 +371,17 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var minY = SelectedElements.Min(e => e.Y);
-            foreach (var e in SelectedElements) e.Y = minY;
+            var actions = SelectedElements
+                .Where(e => e.Y != minY)
+                .Select(e => new MoveElementAction(e, e.X, e.Y, e.X, minY))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("顶对齐", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.Y = 0;
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, SelectedElement.X, 0);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -349,11 +391,19 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var maxBottom = SelectedElements.Max(e => e.Y + e.Height);
-            foreach (var e in SelectedElements) e.Y = maxBottom - e.Height;
+            var actions = SelectedElements
+                .Select(e => { var newY = maxBottom - e.Height; return (el: e, newY); })
+                .Where(t => t.el.Y != t.newY)
+                .Select(t => new MoveElementAction(t.el, t.el.X, t.el.Y, t.el.X, t.newY))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("底对齐", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.Y = Math.Max(0, CurrentDocument.HeightMm - SelectedElement.Height);
+            var newY = Math.Max(0, CurrentDocument.HeightMm - SelectedElement.Height);
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, SelectedElement.X, newY);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -363,11 +413,19 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var avgCenterX = SelectedElements.Average(e => e.X + e.Width / 2);
-            foreach (var e in SelectedElements) e.X = avgCenterX - e.Width / 2;
+            var actions = SelectedElements
+                .Select(e => { var newX = avgCenterX - e.Width / 2; return (el: e, newX); })
+                .Where(t => t.el.X != t.newX)
+                .Select(t => new MoveElementAction(t.el, t.el.X, t.el.Y, t.newX, t.el.Y))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("水平居中", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.X = Math.Max(0, (CurrentDocument.WidthMm - SelectedElement.Width) / 2);
+            var newX = Math.Max(0, (CurrentDocument.WidthMm - SelectedElement.Width) / 2);
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, newX, SelectedElement.Y);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -377,11 +435,19 @@ public partial class MainViewModel : ObservableObject
         if (SelectedElements.Count >= 2)
         {
             var avgCenterY = SelectedElements.Average(e => e.Y + e.Height / 2);
-            foreach (var e in SelectedElements) e.Y = avgCenterY - e.Height / 2;
+            var actions = SelectedElements
+                .Select(e => { var newY = avgCenterY - e.Height / 2; return (el: e, newY); })
+                .Where(t => t.el.Y != t.newY)
+                .Select(t => new MoveElementAction(t.el, t.el.X, t.el.Y, t.el.X, t.newY))
+                .Cast<IUndoableAction>().ToList();
+            if (actions.Count > 0)
+                _undoRedo.Execute(new CompositeAction("垂直居中", actions));
         }
         else if (SelectedElement != null)
         {
-            SelectedElement.Y = Math.Max(0, (CurrentDocument.HeightMm - SelectedElement.Height) / 2);
+            var newY = Math.Max(0, (CurrentDocument.HeightMm - SelectedElement.Height) / 2);
+            var action = new MoveElementAction(SelectedElement, SelectedElement.X, SelectedElement.Y, SelectedElement.X, newY);
+            _undoRedo.Execute(action);
         }
     }
 
@@ -396,11 +462,15 @@ public partial class MainViewModel : ObservableObject
         var totalSpace = sorted.Last().X + sorted.Last().Width - sorted.First().X - totalWidth;
         var gap = totalSpace / (sorted.Count - 1);
         var currentX = sorted.First().X + sorted.First().Width + gap;
+        var actions = new List<IUndoableAction>();
         for (int i = 1; i < sorted.Count - 1; i++)
         {
-            sorted[i].X = currentX;
+            if (sorted[i].X != currentX)
+                actions.Add(new MoveElementAction(sorted[i], sorted[i].X, sorted[i].Y, currentX, sorted[i].Y));
             currentX += sorted[i].Width + gap;
         }
+        if (actions.Count > 0)
+            _undoRedo.Execute(new CompositeAction("水平分布", actions));
     }
 
     [RelayCommand]
@@ -412,11 +482,15 @@ public partial class MainViewModel : ObservableObject
         var totalSpace = sorted.Last().Y + sorted.Last().Height - sorted.First().Y - totalHeight;
         var gap = totalSpace / (sorted.Count - 1);
         var currentY = sorted.First().Y + sorted.First().Height + gap;
+        var actions = new List<IUndoableAction>();
         for (int i = 1; i < sorted.Count - 1; i++)
         {
-            sorted[i].Y = currentY;
+            if (sorted[i].Y != currentY)
+                actions.Add(new MoveElementAction(sorted[i], sorted[i].X, sorted[i].Y, sorted[i].X, currentY));
             currentY += sorted[i].Height + gap;
         }
+        if (actions.Count > 0)
+            _undoRedo.Execute(new CompositeAction("垂直分布", actions));
     }
 
     // ── Nudge (Arrow key movement) ──
@@ -425,56 +499,96 @@ public partial class MainViewModel : ObservableObject
     private void NudgeLeft()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.X -= Helpers.DesignConstants.NudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X - Helpers.DesignConstants.NudgeDistance, SelectedElement.Y);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void NudgeRight()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.X += Helpers.DesignConstants.NudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X + Helpers.DesignConstants.NudgeDistance, SelectedElement.Y);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void NudgeUp()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.Y -= Helpers.DesignConstants.NudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X, SelectedElement.Y - Helpers.DesignConstants.NudgeDistance);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void NudgeDown()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.Y += Helpers.DesignConstants.NudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X, SelectedElement.Y + Helpers.DesignConstants.NudgeDistance);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void LargeNudgeLeft()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.X -= Helpers.DesignConstants.LargeNudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X - Helpers.DesignConstants.LargeNudgeDistance, SelectedElement.Y);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void LargeNudgeRight()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.X += Helpers.DesignConstants.LargeNudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X + Helpers.DesignConstants.LargeNudgeDistance, SelectedElement.Y);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void LargeNudgeUp()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.Y -= Helpers.DesignConstants.LargeNudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X, SelectedElement.Y - Helpers.DesignConstants.LargeNudgeDistance);
+            _undoRedo.Execute(action);
+        }
     }
 
     [RelayCommand]
     private void LargeNudgeDown()
     {
         if (SelectedElement != null && !SelectedElement.IsLocked)
-            SelectedElement.Y += Helpers.DesignConstants.LargeNudgeDistance;
+        {
+            var action = new MoveElementAction(SelectedElement,
+                SelectedElement.X, SelectedElement.Y,
+                SelectedElement.X, SelectedElement.Y + Helpers.DesignConstants.LargeNudgeDistance);
+            _undoRedo.Execute(action);
+        }
     }
 
     // ── Print (command for keyboard shortcut; opens the print settings dialog) ──

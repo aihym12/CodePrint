@@ -30,6 +30,15 @@ public class UndoRedoService
     public void Execute(IUndoableAction action)
     {
         action.Execute();
+        Record(action);
+    }
+
+    /// <summary>
+    /// Records an already-performed action into the undo history without executing it.
+    /// Use this when the action has already been applied (e.g. drag/resize via mouse interaction).
+    /// </summary>
+    public void Record(IUndoableAction action)
+    {
         _undoStack.Push(action);
         _redoStack.Clear();
 

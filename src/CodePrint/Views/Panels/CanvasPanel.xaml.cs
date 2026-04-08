@@ -482,6 +482,20 @@ public partial class CanvasPanel : UserControl
     {
         if (_isResizing)
         {
+            // Record resize action for undo/redo
+            if (ViewModel?.SelectedElement != null)
+            {
+                var element = ViewModel.SelectedElement;
+                if (element.X != _resizeStartX || element.Y != _resizeStartY ||
+                    element.Width != _resizeStartWidth || element.Height != _resizeStartHeight)
+                {
+                    var action = new Services.ResizeElementAction(element,
+                        _resizeStartX, _resizeStartY, _resizeStartWidth, _resizeStartHeight,
+                        element.X, element.Y, element.Width, element.Height);
+                    ViewModel.UndoRedoService.Record(action);
+                }
+            }
+
             _isResizing = false;
             _resizeHandleIndex = -1;
             DesignCanvas.ReleaseMouseCapture();
@@ -508,8 +522,44 @@ public partial class CanvasPanel : UserControl
 
         if (_isDragging && ViewModel?.SelectedElement != null)
         {
+            // Record move actions for undo/redo
+            var moveActions = new List<Services.IUndoableAction>();
+
+            foreach (var kvp in _multiDragStartPositions)
+            {
+                var el = ViewModel.CurrentDocument.Elements.FirstOrDefault(e2 => e2.Id == kvp.Key);
+                if (el == null) continue;
+                if (el.X != kvp.Value.X || el.Y != kvp.Value.Y)
+                {
+                    moveActions.Add(new Services.MoveElementAction(
+                        el, kvp.Value.X, kvp.Value.Y, el.X, el.Y));
+                }
+            }
+
+            // Handle primary element if it wasn't in multi-drag
+            var selectedElement = ViewModel.SelectedElement;
+            if (!_multiDragStartPositions.ContainsKey(selectedElement.Id))
+            {
+                if (selectedElement.X != _elementStartX || selectedElement.Y != _elementStartY)
+                {
+                    moveActions.Add(new Services.MoveElementAction(
+                        selectedElement, _elementStartX, _elementStartY,
+                        selectedElement.X, selectedElement.Y));
+                }
+            }
+
+            if (moveActions.Count == 1)
+            {
+                ViewModel.UndoRedoService.Record(moveActions[0]);
+            }
+            else if (moveActions.Count > 1)
+            {
+                var composite = new Services.CompositeAction("移动元素", moveActions);
+                ViewModel.UndoRedoService.Record(composite);
+            }
+
             // Find the element visual and release mouse
-            if (_elementVisuals.TryGetValue(ViewModel.SelectedElement.Id, out var visual))
+            if (_elementVisuals.TryGetValue(selectedElement.Id, out var visual))
                 visual.ReleaseMouseCapture();
         }
 
