@@ -261,7 +261,8 @@ public partial class MainWindow : Window
         if (e.PropertyName is nameof(TextElement.FontFamily) or nameof(TextElement.FontSize)
             or nameof(TextElement.LetterSpacing) or nameof(TextElement.LineSpacing)
             or nameof(TextElement.IsBold) or nameof(TextElement.IsItalic)
-            or nameof(TextElement.IsUnderline) or nameof(TextElement.IsStrikethrough))
+            or nameof(TextElement.IsUnderline) or nameof(TextElement.IsStrikethrough)
+            or nameof(TextElement.TextAlignment))
         {
             SyncToolbarFromElement();
         }
@@ -327,6 +328,12 @@ public partial class MainWindow : Window
             UpdateToggleButtonAppearance(ItalicButton, isItalic);
             UpdateToggleButtonAppearance(UnderlineButton, isUnderline);
             UpdateToggleButtonAppearance(StrikethroughButton, isStrikethrough);
+
+            // Sync text alignment button appearance
+            if (element is TextElement textForAlign)
+                SyncTextAlignmentButtons(textForAlign.TextAlignment);
+            else
+                SyncTextAlignmentButtons(Models.TextAlignment.Left);
         }
         finally
         {
@@ -502,6 +509,46 @@ public partial class MainWindow : Window
             text.IsStrikethrough = !text.IsStrikethrough;
             UpdateToggleButtonAppearance(StrikethroughButton, text.IsStrikethrough);
         }
+    }
+
+    private void ApplyTextAlignment(Models.TextAlignment alignment)
+    {
+        if (ViewModel.SelectedElement is TextElement text)
+        {
+            text.TextAlignment = alignment;
+            var canvasWidth = ViewModel.CurrentDocument.WidthMm;
+            text.X = 0;
+            text.Width = canvasWidth;
+            SyncTextAlignmentButtons(alignment);
+        }
+    }
+
+    private void TextAlignLeftButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyTextAlignment(Models.TextAlignment.Left);
+    }
+
+    private void TextAlignCenterButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyTextAlignment(Models.TextAlignment.Center);
+    }
+
+    private void TextAlignRightButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyTextAlignment(Models.TextAlignment.Right);
+    }
+
+    private void TextAlignJustifyButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyTextAlignment(Models.TextAlignment.Justify);
+    }
+
+    private void SyncTextAlignmentButtons(Models.TextAlignment current)
+    {
+        UpdateToggleButtonAppearance(AlignLeftFormatButton, current == Models.TextAlignment.Left);
+        UpdateToggleButtonAppearance(AlignCenterFormatButton, current == Models.TextAlignment.Center);
+        UpdateToggleButtonAppearance(AlignRightFormatButton, current == Models.TextAlignment.Right);
+        UpdateToggleButtonAppearance(AlignJustifyFormatButton, current == Models.TextAlignment.Justify);
     }
 
     private void ElementXBox_LostFocus(object sender, RoutedEventArgs e)
