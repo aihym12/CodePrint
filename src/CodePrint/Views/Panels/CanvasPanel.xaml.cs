@@ -361,6 +361,7 @@ public partial class CanvasPanel : UserControl
 
         if (!_isDragging || ViewModel?.SelectedElement == null) return;
 
+        var selectedElement = ViewModel.SelectedElement;
         var pos = e.GetPosition(DesignCanvas);
         var dx = (pos.X - _dragStart.X) / MmToPx;
         var dy = (pos.Y - _dragStart.Y) / MmToPx;
@@ -382,15 +383,15 @@ public partial class CanvasPanel : UserControl
         }
 
         // Fallback: if primary element was not in multi-drag (e.g. single selection)
-        if (!_multiDragStartPositions.ContainsKey(ViewModel.SelectedElement.Id))
+        if (!_multiDragStartPositions.ContainsKey(selectedElement.Id))
         {
-            ViewModel.SelectedElement.X = _elementStartX + dx;
-            ViewModel.SelectedElement.Y = _elementStartY + dy;
+            selectedElement.X = _elementStartX + dx;
+            selectedElement.Y = _elementStartY + dy;
 
-            if (_elementVisuals.TryGetValue(ViewModel.SelectedElement.Id, out var visual))
+            if (_elementVisuals.TryGetValue(selectedElement.Id, out var visual))
             {
-                Canvas.SetLeft(visual, ViewModel.SelectedElement.X * MmToPx);
-                Canvas.SetTop(visual, ViewModel.SelectedElement.Y * MmToPx);
+                Canvas.SetLeft(visual, selectedElement.X * MmToPx);
+                Canvas.SetTop(visual, selectedElement.Y * MmToPx);
             }
         }
 
