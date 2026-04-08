@@ -74,4 +74,13 @@ public partial class ElementPanel : UserControl
             e.Handled = true;
         }
     }
+
+    private void ImportImageAsText_Click(object sender, RoutedEventArgs e)
+    {
+        var window = Window.GetWindow(this);
+        if (window?.DataContext is ViewModels.MainViewModel viewModel)
+        {
+            viewModel.ImportImageAsTextCommand.Execute(null);
+        }
+    }
 }

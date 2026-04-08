@@ -449,4 +449,75 @@ public partial class MainViewModel : ObservableObject
         StatusText = "打印...";
         RequestShowPrintDialog?.Invoke();
     }
+
+    // ── Import Image as Text (OCR) ──
+
+    /// <summary>Raised when the OCR import file picker should be shown.</summary>
+    public event Action? RequestImportImageAsText;
+
+    [RelayCommand]
+    private void ImportImageAsText()
+    {
+        RequestImportImageAsText?.Invoke();
+    }
+
+    /// <summary>
+    /// Runs OCR on the specified image and creates TextElement objects
+    /// for each recognized line, positioned and sized to match the original layout.
+    /// </summary>
+    /// <param name="imagePath">Absolute path to the image file.</param>
+    /// <param name="targetWidthMm">Target width in mm (usually document width).</param>
+    /// <param name="targetHeightMm">Target height in mm (usually document height).</param>
+    public async Task ImportImageAsTextAsync(string imagePath, double targetWidthMm, double targetHeightMm)
+    {
+        StatusText = "正在识别文字…";
+
+        try
+        {
+            var (lines, imgWidth, imgHeight) = await Services.OcrService.RecognizeAsync(imagePath);
+
+            if (lines.Count == 0)
+            {
+                StatusText = "未识别到文字";
+                return;
+            }
+
+            // Scale factor: map image pixel coordinates to document mm coordinates.
+            // Fit the image proportionally into the document area.
+            double scaleX = targetWidthMm / imgWidth;
+            double scaleY = targetHeightMm / imgHeight;
+            double scale = Math.Min(scaleX, scaleY);
+
+            foreach (var line in lines)
+            {
+                // Estimate font size in points from the line height.
+                // line.Height is in image pixels; converting to mm via scale,
+                // then mm to pt (1pt = 25.4/72 mm).
+                double lineHeightMm = line.Height * scale;
+                double fontSizePt = lineHeightMm / (25.4 / 72.0);
+                fontSizePt = Math.Max(6, Math.Round(fontSizePt, 1));
+
+                var textElement = new TextElement
+                {
+                    X = line.X * scale,
+                    Y = line.Y * scale,
+                    Width = line.Width * scale,
+                    Height = lineHeightMm,
+                    Content = line.Text,
+                    FontSize = fontSizePt,
+                    ZIndex = CurrentDocument.Elements.Count
+                };
+
+                var action = new AddElementAction(CurrentDocument.Elements, textElement);
+                _undoRedo.Execute(action);
+            }
+
+            SelectedElement = CurrentDocument.Elements.LastOrDefault();
+            StatusText = $"已识别 {lines.Count} 行文字";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"识别失败: {ex.Message}";
+        }
+    }
 }

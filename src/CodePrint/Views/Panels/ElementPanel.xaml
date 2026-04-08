@@ -84,6 +84,12 @@
                         PreviewMouseLeftButtonDown="ElementButton_PreviewMouseLeftButtonDown"
                         PreviewMouseMove="ElementButton_PreviewMouseMove"
                         PreviewMouseRightButtonUp="ElementButton_PreviewMouseRightButtonUp"/>
+
+                <Separator Margin="0,8"/>
+
+                <Button Style="{StaticResource ElementPanelButton}" Content="📷 图片转文字"
+                        Click="ImportImageAsText_Click"
+                        ToolTip="导入图片并识别文字为可编辑文本"/>
             </StackPanel>
         </ScrollViewer>
     </Border>
