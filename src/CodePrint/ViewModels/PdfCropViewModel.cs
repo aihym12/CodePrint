@@ -567,7 +567,7 @@ public partial class PdfCropViewModel : ObservableObject
             DensityLevel.Light => 72,
             DensityLevel.Medium => 150,
             DensityLevel.Dark => 200,
-            DensityLevel.Custom => Math.Max(72, Math.Min(CustomDpi, 300)),  // Clamp preview DPI for performance
+            DensityLevel.Custom => Math.Max(72, Math.Min(CustomDpi, 300)),  // Preview DPI clamped to 72~300 for performance
             _ => 150  // Auto — balanced preview quality
         };
     }
@@ -579,7 +579,7 @@ public partial class PdfCropViewModel : ObservableObject
             DensityLevel.Light => 150,
             DensityLevel.Medium => 300,
             DensityLevel.Dark => 600,
-            DensityLevel.Custom => Math.Max(72, CustomDpi),
+            DensityLevel.Custom => Math.Max(72, Math.Min(CustomDpi, 1200)),  // Print DPI clamped to 72~1200
             _ => GetAutoPrintDpi()  // Auto — detect from printer
         };
     }
