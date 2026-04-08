@@ -48,6 +48,7 @@ public partial class PdfCropViewModel : ObservableObject
     {
         LoadSettings();
         _isInitializing = false;
+        UpdateDensityHint();
     }
 
     // ── File state ──
@@ -176,14 +177,32 @@ public partial class PdfCropViewModel : ObservableObject
     // ── Image density ──
 
     [ObservableProperty]
-    private DensityLevel _imageDensity = DensityLevel.Auto;
+    private DensityLevel _imageDensity = DensityLevel.Dark;
+
+    /// <summary>Hint text showing the effective print DPI for the current density level.</summary>
+    [ObservableProperty]
+    private string _densityHintText = "";
 
     partial void OnImageDensityChanged(DensityLevel value)
     {
         SaveSettings();
+        UpdateDensityHint();
         // Re-render preview at new density when file is loaded
         if (IsFileLoaded && IsNextStepVisible)
             _ = RenderCurrentPageAsync();
+    }
+
+    private void UpdateDensityHint()
+    {
+        var dpi = GetPrintDpi();
+        DensityHintText = ImageDensity switch
+        {
+            DensityLevel.Auto => $"自适应打印 DPI: {dpi}（根据打印机自动选择）",
+            DensityLevel.Light => $"打印 DPI: {dpi}（适合草稿快速打印）",
+            DensityLevel.Medium => $"打印 DPI: {dpi}（标准质量）",
+            DensityLevel.Dark => $"打印 DPI: {dpi}（高清质量）",
+            _ => ""
+        };
     }
 
     // ── Last printer (persisted but not displayed in this VM) ──
@@ -208,7 +227,7 @@ public partial class PdfCropViewModel : ObservableObject
         _customHeightMm = s.CustomHeightMm;
         _printLayoutIndex = s.PrintLayoutIndex;
         _applyCropToAllPages = s.ApplyCropToAllPages;
-        _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Auto;
+        _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Dark;
         _processingMode = Enum.TryParse<PdfProcessingMode>(s.ProcessingMode, out var m) ? m : PdfProcessingMode.PageCrop;
         LastPrinterName = s.LastPrinterName;
     }
@@ -517,10 +536,10 @@ public partial class PdfCropViewModel : ObservableObject
     {
         return ImageDensity switch
         {
-            DensityLevel.Light => 96,
-            DensityLevel.Medium => 200,
-            DensityLevel.Dark => 300,
-            _ => 200  // Auto — good preview quality
+            DensityLevel.Light => 72,
+            DensityLevel.Medium => 150,
+            DensityLevel.Dark => 200,
+            _ => 150  // Auto — balanced preview quality
         };
     }
 
@@ -528,11 +547,36 @@ public partial class PdfCropViewModel : ObservableObject
     {
         return ImageDensity switch
         {
-            DensityLevel.Light => 600,
-            DensityLevel.Medium => 600,
+            DensityLevel.Light => 150,
+            DensityLevel.Medium => 300,
             DensityLevel.Dark => 600,
-            _ => 600  // Auto — high quality for sharp text on thermal printers like QR-488
+            _ => GetAutoPrintDpi()  // Auto — detect from printer
         };
+    }
+
+    /// <summary>Attempt to read the printer's native DPI; fall back to 300 if unavailable.</summary>
+    private double GetAutoPrintDpi()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(LastPrinterName))
+            {
+                using var server = new LocalPrintServer();
+                var queue = server.GetPrintQueue(LastPrinterName);
+                var ticket = queue.DefaultPrintTicket;
+                var res = ticket.PageResolution;
+                if (res != null)
+                {
+                    var detectedDpi = Math.Max(res.X ?? 0, res.Y ?? 0);
+                    if (detectedDpi > 0) return detectedDpi;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Printer not available or doesn't report resolution; fall back to default
+        }
+        return 300; // Safe default for most thermal printers
     }
 
     private async Task RenderCurrentPageAsync()
