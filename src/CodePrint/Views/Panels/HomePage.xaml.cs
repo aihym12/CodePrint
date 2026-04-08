@@ -44,6 +44,8 @@ public partial class HomePage : UserControl
     {
         var dialog = new SettingsDialog { Owner = Window.GetWindow(this) };
         dialog.ShowDialog();
+    }
+
     private void ImportImageTemplate_Click(object sender, MouseButtonEventArgs e)
     {
         var dialog = new OpenFileDialog
