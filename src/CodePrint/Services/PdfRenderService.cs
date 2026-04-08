@@ -38,7 +38,8 @@ public class PdfRenderService
         var options = new PdfPageRenderOptions
         {
             DestinationWidth = (uint)Math.Max(1, page.Size.Width * scale),
-            DestinationHeight = (uint)Math.Max(1, page.Size.Height * scale)
+            DestinationHeight = (uint)Math.Max(1, page.Size.Height * scale),
+            BackgroundColor = new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 }
         };
 
         await page.RenderToStreamAsync(stream, options);
