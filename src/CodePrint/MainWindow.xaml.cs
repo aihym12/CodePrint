@@ -383,13 +383,11 @@ public partial class MainWindow : Window
 
     private void FontSizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isSyncingToolbar) return;
         ApplyFontSizeFromCombo();
     }
 
     private void FontSizeCombo_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (_isSyncingToolbar) return;
         ApplyFontSizeFromCombo();
     }
 
@@ -397,8 +395,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.Enter)
         {
-            if (!_isSyncingToolbar)
-                ApplyFontSizeFromCombo();
+            ApplyFontSizeFromCombo();
             DesignCanvas_MoveFocus(sender);
             e.Handled = true;
         }
@@ -406,6 +403,8 @@ public partial class MainWindow : Window
 
     private void ApplyFontSizeFromCombo()
     {
+        if (_isSyncingToolbar) return;
+
         string? text = null;
         if (FontSizeCombo.SelectedItem is ComboBoxItem item && item.Content is string content)
             text = content;
@@ -503,7 +502,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Moves keyboard focus away from the current control so that changes are committed.</summary>
+    /// <summary>Moves keyboard focus to the next control for better UX after applying a value.</summary>
     private static void DesignCanvas_MoveFocus(object sender)
     {
         if (sender is UIElement element)
