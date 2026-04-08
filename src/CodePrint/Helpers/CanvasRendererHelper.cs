@@ -81,7 +81,10 @@ public static class CanvasRendererHelper
             tb.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
         }
 
-        // Apply character spacing via per-character horizontal offsets
+        // Apply character spacing via per-character horizontal offsets.
+        // Each character at position i is shifted by LetterSpacing * i because
+        // TranslateTransform is absolute (from original position), so cumulative
+        // offsets ensure uniform spacing between all consecutive characters.
         if (element.LetterSpacing != 0 && !string.IsNullOrEmpty(element.Content))
         {
             var textEffects = new TextEffectCollection();
