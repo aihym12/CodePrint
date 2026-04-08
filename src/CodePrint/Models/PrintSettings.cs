@@ -18,4 +18,7 @@ public class PrintSettings
     public bool EnableRegistrationPrint { get; set; }
     public bool ShowCutLines { get; set; }
     public bool MirrorPrint { get; set; }
+
+    /// <summary>打印 DPI（清晰度），0 表示使用全局默认值。常见值：150、203、300、600。</summary>
+    public int PrintDpi { get; set; }
 }

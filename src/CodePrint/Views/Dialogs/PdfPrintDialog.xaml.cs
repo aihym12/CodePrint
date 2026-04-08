@@ -6,7 +6,7 @@ namespace CodePrint.Views.Dialogs;
 
 public partial class PdfPrintDialog : Window
 {
-    public PdfPrintDialog(int totalPages, string? lastPrinterName = null)
+    public PdfPrintDialog(int totalPages, string? lastPrinterName = null, int lastDpi = 0)
     {
         InitializeComponent();
         DataContext = this;
@@ -15,6 +15,7 @@ public partial class PdfPrintDialog : Window
         PageTo = totalPages;
         TotalPages = totalPages;
         Copies = 1;
+        PrintDpi = lastDpi;
 
         LoadPrinters(lastPrinterName);
     }
@@ -22,6 +23,9 @@ public partial class PdfPrintDialog : Window
     // ── Bindable properties ──
 
     public ObservableCollection<string> Printers { get; } = new();
+
+    /// <summary>常见 DPI 选项。</summary>
+    public IReadOnlyList<int> DpiOptions { get; } = new[] { 0, 150, 203, 300, 600 };
 
     public string? SelectedPrinter
     {
@@ -34,6 +38,7 @@ public partial class PdfPrintDialog : Window
     public int PageTo { get; set; }
     public int TotalPages { get; set; }
     public int Copies { get; set; }
+    public int PrintDpi { get; set; }
 
     // ── Result properties (read after DialogResult == true) ──
 
@@ -41,6 +46,7 @@ public partial class PdfPrintDialog : Window
     public int ResultPageFrom => Math.Max(1, Math.Min(PageFrom, TotalPages));
     public int ResultPageTo => Math.Max(ResultPageFrom, Math.Min(PageTo, TotalPages));
     public int ResultCopies => Math.Max(1, Copies);
+    public int ResultDpi => Math.Max(0, PrintDpi);
 
     // ── Private ──
 

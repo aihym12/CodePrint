@@ -1,7 +1,7 @@
 <Window x:Class="CodePrint.Views.Dialogs.PdfPrintDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="打印" Width="440" Height="300"
+        Title="打印" Width="440" Height="360"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" ShowInTaskbar="False"
         Background="White">
@@ -58,6 +58,22 @@
             <TextBlock Text="输出份数：" VerticalAlignment="Center" FontSize="13"/>
             <TextBox Grid.Column="1" Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}"
                      FontSize="13" Padding="6,4" HorizontalContentAlignment="Center"/>
+        </Grid>
+
+        <!-- DPI -->
+        <Grid Grid.Row="3" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="打印DPI：" VerticalAlignment="Center" FontSize="13"/>
+            <ComboBox Grid.Column="1" IsEditable="True"
+                      ItemsSource="{Binding DpiOptions}"
+                      SelectedItem="{Binding PrintDpi}"
+                      Text="{Binding PrintDpi, UpdateSourceTrigger=PropertyChanged}"
+                      FontSize="13" Padding="6,4"/>
+            <TextBlock Grid.Column="2" Text="（0=默认）" VerticalAlignment="Center" FontSize="11" Foreground="#999" Margin="6,0,0,0"/>
         </Grid>
 
         <!-- Buttons -->

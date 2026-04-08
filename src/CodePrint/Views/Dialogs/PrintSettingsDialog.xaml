@@ -75,6 +75,16 @@
                 <CheckBox Content="套版打印（连续打印对齐）" Margin="0,0,0,4" IsChecked="{Binding Settings.EnableRegistrationPrint}"/>
                 <CheckBox Content="打印边框（显示裁切线）" Margin="0,0,0,4" IsChecked="{Binding Settings.ShowCutLines}"/>
                 <CheckBox Content="镜像打印" Margin="0,0,0,4" IsChecked="{Binding Settings.MirrorPrint}"/>
+
+                <TextBlock Text="打印 DPI（清晰度）" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <ComboBox x:Name="DpiCombo" ItemsSource="{Binding DpiOptions}"
+                              SelectedItem="{Binding Settings.PrintDpi}"
+                              Width="100" IsEditable="True"
+                              Text="{Binding Settings.PrintDpi, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="DPI" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#666"/>
+                </StackPanel>
+                <TextBlock Text="提示：0=使用全局默认，203=热敏打印机，300=普通打印，600=高质量" FontSize="11" Foreground="#999" Margin="0,4,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </ScrollViewer>
 
