@@ -70,6 +70,7 @@ public class PdfCropSettings
 
     // Density
     public string ImageDensity { get; set; } = "Auto";
+    public int CustomDpi { get; set; } = 300;
 
     // Processing mode
     public string ProcessingMode { get; set; } = "PageCrop";

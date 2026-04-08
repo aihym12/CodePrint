@@ -173,6 +173,15 @@
 
                         <Separator Margin="0,4,0,16"/>
 
+                        <!-- Print DPI -->
+                        <TextBlock Text="打印 DPI" FontSize="12" Foreground="#666" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <ComboBox ItemsSource="{Binding DpiOptions}" SelectedItem="{Binding PrintDpi}"
+                                      IsEditable="True" Text="{Binding PrintDpi, UpdateSourceTrigger=PropertyChanged}"
+                                      Width="90" FontSize="12" Padding="4,2"/>
+                            <TextBlock Text=" DPI" VerticalAlignment="Center" FontSize="11" Foreground="#999" Margin="4,0,0,0"/>
+                        </StackPanel>
+
                         <!-- Print -->
                         <Button Content="🖨 打印" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch"
                                 Command="{Binding PrintCommand}"/>

@@ -138,9 +138,11 @@ public partial class PrintViewModel : ObservableObject
         PrintSettingsService.Save(Settings);
     }
 
-    /// <summary>Print resolution in DPI. Read from application settings. Higher values produce sharper output on thermal printers like Qirui QR-488 (203 DPI native).
-    /// Rendering at 600 DPI and letting the printer driver downsample produces significantly sharper text and barcodes.</summary>
-    private static int PrintDpi => AppSettingsService.Current.PrintDpi;
+    /// <summary>常见 DPI 选项。</summary>
+    public IReadOnlyList<int> DpiOptions { get; } = new[] { 150, 203, 300, 600 };
+
+    /// <summary>Print resolution in DPI. Uses per-print setting if set, otherwise falls back to global app setting.</summary>
+    private int PrintDpi => Settings.PrintDpi > 0 ? Settings.PrintDpi : AppSettingsService.Current.PrintDpi;
 
     /// <summary>Renders the current document into a visual element suitable for printing.</summary>
     private DrawingVisual RenderDocumentVisual()

@@ -33,7 +33,8 @@ public enum DensityLevel
     Auto,
     Light,
     Medium,
-    Dark
+    Dark,
+    Custom
 }
 
 /// <summary>ViewModel for the PDF Crop &amp; Print module.</summary>
@@ -183,10 +184,26 @@ public partial class PdfCropViewModel : ObservableObject
     [ObservableProperty]
     private string _densityHintText = "";
 
+    /// <summary>自定义 DPI 值，仅当 ImageDensity 为 Custom 时使用。</summary>
+    [ObservableProperty]
+    private int _customDpi = 300;
+
+    /// <summary>是否显示自定义 DPI 输入框。</summary>
+    public bool IsCustomDensity => ImageDensity == DensityLevel.Custom;
+
+    partial void OnCustomDpiChanged(int value)
+    {
+        SaveSettings();
+        UpdateDensityHint();
+        if (IsFileLoaded && IsNextStepVisible)
+            _ = RenderCurrentPageAsync();
+    }
+
     partial void OnImageDensityChanged(DensityLevel value)
     {
         SaveSettings();
         UpdateDensityHint();
+        OnPropertyChanged(nameof(IsCustomDensity));
         // Re-render preview at new density when file is loaded
         if (IsFileLoaded && IsNextStepVisible)
             _ = RenderCurrentPageAsync();
@@ -201,6 +218,7 @@ public partial class PdfCropViewModel : ObservableObject
             DensityLevel.Light => $"打印 DPI: {dpi}（适合草稿快速打印）",
             DensityLevel.Medium => $"打印 DPI: {dpi}（标准质量）",
             DensityLevel.Dark => $"打印 DPI: {dpi}（高清质量）",
+            DensityLevel.Custom => $"自定义打印 DPI: {dpi}",
             _ => ""
         };
     }
@@ -228,6 +246,7 @@ public partial class PdfCropViewModel : ObservableObject
         _printLayoutIndex = s.PrintLayoutIndex;
         _applyCropToAllPages = s.ApplyCropToAllPages;
         _imageDensity = Enum.TryParse<DensityLevel>(s.ImageDensity, out var d) ? d : DensityLevel.Dark;
+        _customDpi = s.CustomDpi;
         _processingMode = Enum.TryParse<PdfProcessingMode>(s.ProcessingMode, out var m) ? m : PdfProcessingMode.PageCrop;
         LastPrinterName = s.LastPrinterName;
     }
@@ -246,6 +265,7 @@ public partial class PdfCropViewModel : ObservableObject
             PrintLayoutIndex = PrintLayoutIndex,
             ApplyCropToAllPages = ApplyCropToAllPages,
             ImageDensity = ImageDensity.ToString(),
+            CustomDpi = CustomDpi,
             ProcessingMode = ProcessingMode.ToString(),
             LastPrinterName = LastPrinterName
         });
@@ -343,6 +363,7 @@ public partial class PdfCropViewModel : ObservableObject
             "Light" => DensityLevel.Light,
             "Medium" => DensityLevel.Medium,
             "Dark" => DensityLevel.Dark,
+            "Custom" => DensityLevel.Custom,
             _ => DensityLevel.Auto
         };
     }
@@ -356,7 +377,7 @@ public partial class PdfCropViewModel : ObservableObject
             return;
         }
 
-        var dialog = new Views.Dialogs.PdfPrintDialog(TotalPages, LastPrinterName)
+        var dialog = new Views.Dialogs.PdfPrintDialog(TotalPages, LastPrinterName, (int)GetPrintDpi())
         {
             Owner = Application.Current.MainWindow
         };
@@ -371,9 +392,16 @@ public partial class PdfCropViewModel : ObservableObject
         var pageFrom = dialog.ResultPageFrom;
         var pageTo = dialog.ResultPageTo;
         var copies = dialog.ResultCopies;
+        var overrideDpi = dialog.ResultDpi;
 
         // Remember the printer for next time
         LastPrinterName = printerName;
+        // If user specified a custom DPI in the print dialog, apply it
+        if (overrideDpi > 0)
+        {
+            CustomDpi = overrideDpi;
+            ImageDensity = DensityLevel.Custom;
+        }
         SaveSettings();
 
         StatusText = "正在准备打印数据…";
@@ -539,6 +567,7 @@ public partial class PdfCropViewModel : ObservableObject
             DensityLevel.Light => 72,
             DensityLevel.Medium => 150,
             DensityLevel.Dark => 200,
+            DensityLevel.Custom => Math.Max(72, Math.Min(CustomDpi, 300)),  // Clamp preview DPI for performance
             _ => 150  // Auto — balanced preview quality
         };
     }
@@ -550,6 +579,7 @@ public partial class PdfCropViewModel : ObservableObject
             DensityLevel.Light => 150,
             DensityLevel.Medium => 300,
             DensityLevel.Dark => 600,
+            DensityLevel.Custom => Math.Max(72, CustomDpi),
             _ => GetAutoPrintDpi()  // Auto — detect from printer
         };
     }
