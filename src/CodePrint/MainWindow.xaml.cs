@@ -393,6 +393,17 @@ public partial class MainWindow : Window
         ApplyFontSizeFromCombo();
     }
 
+    private void FontSizeCombo_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            if (!_isSyncingToolbar)
+                ApplyFontSizeFromCombo();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
     private void ApplyFontSizeFromCombo()
     {
         string? text = null;
@@ -412,6 +423,21 @@ public partial class MainWindow : Window
 
     private void LetterSpacingBox_LostFocus(object sender, RoutedEventArgs e)
     {
+        ApplyLetterSpacing();
+    }
+
+    private void LetterSpacingBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyLetterSpacing();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyLetterSpacing()
+    {
         if (_isSyncingToolbar) return;
         if (ViewModel.SelectedElement is TextElement text && double.TryParse(LetterSpacingBox.Text, out var spacing)
             && spacing >= -10 && spacing <= 100)
@@ -419,6 +445,21 @@ public partial class MainWindow : Window
     }
 
     private void LineSpacingBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyLineSpacing();
+    }
+
+    private void LineSpacingBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyLineSpacing();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyLineSpacing()
     {
         if (_isSyncingToolbar) return;
         if (ViewModel.SelectedElement is TextElement text && double.TryParse(LineSpacingBox.Text, out var spacing)
@@ -459,6 +500,15 @@ public partial class MainWindow : Window
         {
             text.IsStrikethrough = !text.IsStrikethrough;
             UpdateToggleButtonAppearance(StrikethroughButton, text.IsStrikethrough);
+        }
+    }
+
+    /// <summary>Moves keyboard focus away from the current control so that changes are committed.</summary>
+    private static void DesignCanvas_MoveFocus(object sender)
+    {
+        if (sender is UIElement element)
+        {
+            element.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
         }
     }
 }

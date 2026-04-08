@@ -102,7 +102,8 @@
                         </ComboBox>
                         <ComboBox x:Name="FontSizeCombo" Width="60" Margin="0,0,4,0" ToolTip="字号" SelectedIndex="3" IsEditable="True"
                                   SelectionChanged="FontSizeCombo_SelectionChanged"
-                                  LostFocus="FontSizeCombo_LostFocus">
+                                  LostFocus="FontSizeCombo_LostFocus"
+                                  KeyDown="FontSizeCombo_KeyDown">
                             <ComboBoxItem Content="8"/>
                             <ComboBoxItem Content="9"/>
                             <ComboBoxItem Content="10"/>
@@ -120,10 +121,10 @@
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <TextBlock Text="字间距" VerticalAlignment="Center" Margin="4,0" FontSize="11"/>
                         <TextBox x:Name="LetterSpacingBox" Width="40" Text="0" VerticalContentAlignment="Center" Margin="0,0,4,0"
-                                 LostFocus="LetterSpacingBox_LostFocus"/>
+                                 LostFocus="LetterSpacingBox_LostFocus" KeyDown="LetterSpacingBox_KeyDown"/>
                         <TextBlock Text="行间距" VerticalAlignment="Center" Margin="4,0" FontSize="11"/>
                         <TextBox x:Name="LineSpacingBox" Width="40" Text="1.2" VerticalContentAlignment="Center" Margin="0,0,4,0"
-                                 LostFocus="LineSpacingBox_LostFocus"/>
+                                 LostFocus="LineSpacingBox_LostFocus" KeyDown="LineSpacingBox_KeyDown"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <Button x:Name="BoldButton" Content="B" Style="{StaticResource FormatButton}" FontWeight="Bold" ToolTip="粗体" Click="BoldButton_Click"/>
                         <Button x:Name="ItalicButton" Content="I" Style="{StaticResource FormatButton}" FontStyle="Italic" ToolTip="斜体" Click="ItalicButton_Click"/>
