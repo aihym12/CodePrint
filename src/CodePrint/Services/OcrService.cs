@@ -30,6 +30,13 @@ public static class OcrService
 
         /// <summary>Bounding box height in image pixels.</summary>
         public double Height { get; set; }
+
+        /// <summary>
+        /// Median height of individual words in this line (in image pixels).
+        /// This provides a tighter estimate of the actual character size
+        /// compared to the full line bounding-box height.
+        /// </summary>
+        public double MedianWordHeight { get; set; }
     }
 
     /// <summary>
@@ -71,6 +78,7 @@ public static class OcrService
             // Compute the bounding box that encloses all words in this line
             double minX = double.MaxValue, minY = double.MaxValue;
             double maxX = double.MinValue, maxY = double.MinValue;
+            var wordHeights = new List<double>();
 
             foreach (var word in ocrLine.Words)
             {
@@ -79,7 +87,12 @@ public static class OcrService
                 if (r.Y < minY) minY = r.Y;
                 if (r.X + r.Width > maxX) maxX = r.X + r.Width;
                 if (r.Y + r.Height > maxY) maxY = r.Y + r.Height;
+                wordHeights.Add(r.Height);
             }
+
+            // Use median word height for a more stable font-size estimate.
+            wordHeights.Sort();
+            double medianWordHeight = wordHeights[wordHeights.Count / 2];
 
             lines.Add(new OcrTextLine
             {
@@ -87,7 +100,8 @@ public static class OcrService
                 X = minX,
                 Y = minY,
                 Width = maxX - minX,
-                Height = maxY - minY
+                Height = maxY - minY,
+                MedianWordHeight = medianWordHeight
             });
         }
 

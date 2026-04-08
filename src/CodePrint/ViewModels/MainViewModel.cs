@@ -527,20 +527,35 @@ public partial class MainViewModel : ObservableObject
             double scaleY = targetHeightMm / imgHeight;
             double scale = Math.Min(scaleX, scaleY);
 
-            foreach (var line in lines)
+            // OCR bounding boxes include extra padding around characters
+            // (ascenders, descenders, line gap). Apply a correction factor
+            // so the estimated font size matches the actual visual size.
+            const double FontSizeCorrectionFactor = 0.78;
+
+            for (int i = 0; i < lines.Count; i++)
             {
-                // Estimate font size in points from the line height.
-                // line.Height is in image pixels; converting to mm via scale,
-                // then mm to pt (1pt = 25.4/72 mm).
-                double lineHeightMm = line.Height * scale;
-                double fontSizePt = lineHeightMm / MmPerPoint;
+                var line = lines[i];
+
+                // Prefer the median word height for a tighter font-size
+                // estimate; fall back to full line height when unavailable.
+                double charHeightPx = line.MedianWordHeight > 0
+                    ? line.MedianWordHeight
+                    : line.Height;
+
+                double charHeightMm = charHeightPx * scale;
+                double fontSizePt = charHeightMm / MmPerPoint * FontSizeCorrectionFactor;
                 fontSizePt = Math.Max(6, Math.Round(fontSizePt, 1));
+
+                // Ensure element width has a small margin so text is not clipped.
+                double elementWidthMm = line.Width * scale * 1.05;
+                double lineHeightMm = line.Height * scale;
 
                 var textElement = new TextElement
                 {
+                    Name = $"识别文本{i + 1}",
                     X = line.X * scale,
                     Y = line.Y * scale,
-                    Width = line.Width * scale,
+                    Width = elementWidthMm,
                     Height = lineHeightMm,
                     Content = line.Text,
                     FontSize = fontSizePt,
