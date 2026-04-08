@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -54,6 +56,19 @@ public static class CanvasRendererHelper
 
     private static FrameworkElement RenderText(TextElement element)
     {
+        var widthPx = element.Width * MmToPx;
+        var heightPx = element.Height * MmToPx;
+
+        // When letter spacing is applied with multiline wrapping, TextEffect
+        // transforms are visual-only and don't affect the TextBlock's layout
+        // calculations. This causes characters on wrapped lines to receive
+        // cumulative offsets from previous lines, breaking the display.
+        // Use a custom multi-line renderer that handles wrapping manually.
+        if (element.LetterSpacing != 0 && element.IsMultiline && !string.IsNullOrEmpty(element.Content))
+        {
+            return RenderTextWithSpacingMultiline(element, widthPx, heightPx);
+        }
+
         var tb = new TextBlock
         {
             Text = element.Content,
@@ -62,24 +77,14 @@ public static class CanvasRendererHelper
             FontWeight = element.IsBold ? FontWeights.Bold : FontWeights.Normal,
             FontStyle = element.IsItalic ? FontStyles.Italic : FontStyles.Normal,
             Foreground = BrushFromHex(element.ForegroundColor),
-            Width = element.Width * MmToPx,
+            Width = widthPx,
             TextWrapping = element.IsMultiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
-            TextAlignment = element.TextAlignment switch
-            {
-                Models.TextAlignment.Left => System.Windows.TextAlignment.Left,
-                Models.TextAlignment.Center => System.Windows.TextAlignment.Center,
-                Models.TextAlignment.Right => System.Windows.TextAlignment.Right,
-                Models.TextAlignment.Justify => System.Windows.TextAlignment.Justify,
-                _ => System.Windows.TextAlignment.Left
-            },
+            TextAlignment = MapTextAlignment(element.TextAlignment),
             UseLayoutRounding = true,
             SnapsToDevicePixels = true
         };
 
-        // Set high-quality text rendering for sharper print output
-        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
-        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);
-        TextOptions.SetTextHintingMode(tb, TextHintingMode.Fixed);
+        SetHighQualityTextRendering(tb);
 
         // Apply line spacing via LineHeight
         if (element.LineSpacing > 0)
@@ -88,23 +93,10 @@ public static class CanvasRendererHelper
             tb.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
         }
 
-        // Apply character spacing via per-character horizontal offsets.
-        // Each character at position i is shifted by LetterSpacing * i because
-        // TranslateTransform is absolute (from original position), so cumulative
-        // offsets ensure uniform spacing between all consecutive characters.
+        // Apply character spacing via per-character horizontal offsets (single-line only).
         if (element.LetterSpacing != 0 && !string.IsNullOrEmpty(element.Content))
         {
-            var textEffects = new TextEffectCollection();
-            for (int i = 1; i < element.Content.Length; i++)
-            {
-                textEffects.Add(new TextEffect
-                {
-                    PositionStart = i,
-                    PositionCount = 1,
-                    Transform = new TranslateTransform(element.LetterSpacing * i, 0)
-                });
-            }
-            tb.TextEffects = textEffects;
+            tb.TextEffects = BuildLetterSpacingEffects(element.Content, element.LetterSpacing);
         }
 
         if (element.IsUnderline)
@@ -118,11 +110,181 @@ public static class CanvasRendererHelper
             Background = element.BackgroundColor == "Transparent"
                 ? Brushes.Transparent
                 : BrushFromHex(element.BackgroundColor),
-            Width = element.Width * MmToPx,
-            Height = element.Height * MmToPx
+            Width = widthPx,
+            Height = heightPx
         };
 
         return border;
+    }
+
+    /// <summary>
+    /// Renders text with letter spacing and multiline wrapping by manually computing
+    /// line breaks that account for the extra spacing between characters.
+    /// Each line is rendered as a separate TextBlock with its own TextEffects.
+    /// </summary>
+    private static FrameworkElement RenderTextWithSpacingMultiline(TextElement element, double widthPx, double heightPx)
+    {
+        var typeface = new Typeface(
+            new FontFamily(element.FontFamily),
+            element.IsItalic ? FontStyles.Italic : FontStyles.Normal,
+            element.IsBold ? FontWeights.Bold : FontWeights.Normal,
+            FontStretches.Normal);
+
+        var foreground = BrushFromHex(element.ForegroundColor);
+        var alignment = MapTextAlignment(element.TextAlignment);
+
+        // Split content into paragraphs (explicit newlines), then wrap each paragraph
+        var paragraphs = element.Content.Split('\n');
+        var allLines = new List<string>();
+        foreach (var paragraph in paragraphs)
+        {
+            if (string.IsNullOrEmpty(paragraph))
+            {
+                allLines.Add(string.Empty);
+                continue;
+            }
+            var wrapped = WrapLineWithSpacing(paragraph, typeface, element.FontSize, widthPx, element.LetterSpacing);
+            allLines.AddRange(wrapped);
+        }
+
+        // Compute line height for spacing
+        double lineHeight = element.LineSpacing > 0
+            ? element.FontSize * element.LineSpacing
+            : element.FontSize * 1.2;
+
+        var stackPanel = new StackPanel();
+        for (int lineIdx = 0; lineIdx < allLines.Count; lineIdx++)
+        {
+            var line = allLines[lineIdx];
+            var tb = new TextBlock
+            {
+                Text = line,
+                FontFamily = new FontFamily(element.FontFamily),
+                FontSize = element.FontSize,
+                FontWeight = element.IsBold ? FontWeights.Bold : FontWeights.Normal,
+                FontStyle = element.IsItalic ? FontStyles.Italic : FontStyles.Normal,
+                Foreground = foreground,
+                Width = widthPx,
+                TextWrapping = TextWrapping.NoWrap,
+                TextAlignment = alignment,
+                Height = lineHeight,
+                UseLayoutRounding = true,
+                SnapsToDevicePixels = true
+            };
+
+            SetHighQualityTextRendering(tb);
+
+            // Apply per-line letter spacing effects (offsets reset for each line)
+            if (line.Length > 1)
+            {
+                tb.TextEffects = BuildLetterSpacingEffects(line, element.LetterSpacing);
+            }
+
+            if (element.IsUnderline)
+                tb.TextDecorations = TextDecorations.Underline;
+            if (element.IsStrikethrough)
+                tb.TextDecorations = TextDecorations.Strikethrough;
+
+            stackPanel.Children.Add(tb);
+        }
+
+        var border = new Border
+        {
+            Child = stackPanel,
+            Background = element.BackgroundColor == "Transparent"
+                ? Brushes.Transparent
+                : BrushFromHex(element.BackgroundColor),
+            Width = widthPx,
+            Height = heightPx,
+            ClipToBounds = true
+        };
+
+        return border;
+    }
+
+    /// <summary>
+    /// Wraps a single paragraph of text into lines, accounting for letter spacing
+    /// in the width calculation.
+    /// </summary>
+    private static List<string> WrapLineWithSpacing(string text, Typeface typeface, double fontSize, double maxWidth, double letterSpacing)
+    {
+        var lines = new List<string>();
+        int start = 0;
+
+        while (start < text.Length)
+        {
+            int count = 0;
+            double lineWidth = 0;
+
+            for (int i = start; i < text.Length; i++)
+            {
+                // Measure character width
+                var ft = new FormattedText(
+                    text[i].ToString(),
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    fontSize,
+                    Brushes.Black,
+                    1.0);
+
+                double charWidth = ft.WidthIncludingTrailingWhitespace;
+                double totalCharWidth = charWidth + (count > 0 ? letterSpacing : 0);
+
+                if (count > 0 && lineWidth + totalCharWidth > maxWidth)
+                    break;
+
+                lineWidth += totalCharWidth;
+                count++;
+            }
+
+            // Ensure at least one character per line to avoid infinite loop
+            if (count == 0)
+                count = 1;
+
+            lines.Add(text.Substring(start, count));
+            start += count;
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Builds TextEffects for letter spacing within a single line of text.
+    /// Each character at position i is shifted by LetterSpacing * i.
+    /// </summary>
+    private static TextEffectCollection BuildLetterSpacingEffects(string text, double letterSpacing)
+    {
+        var textEffects = new TextEffectCollection();
+        for (int i = 1; i < text.Length; i++)
+        {
+            textEffects.Add(new TextEffect
+            {
+                PositionStart = i,
+                PositionCount = 1,
+                Transform = new TranslateTransform(letterSpacing * i, 0)
+            });
+        }
+        return textEffects;
+    }
+
+    private static System.Windows.TextAlignment MapTextAlignment(Models.TextAlignment alignment)
+    {
+        return alignment switch
+        {
+            Models.TextAlignment.Left => System.Windows.TextAlignment.Left,
+            Models.TextAlignment.Center => System.Windows.TextAlignment.Center,
+            Models.TextAlignment.Right => System.Windows.TextAlignment.Right,
+            Models.TextAlignment.Justify => System.Windows.TextAlignment.Justify,
+            _ => System.Windows.TextAlignment.Left
+        };
+    }
+
+    private static void SetHighQualityTextRendering(TextBlock tb)
+    {
+        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);
+        TextOptions.SetTextHintingMode(tb, TextHintingMode.Fixed);
     }
 
     private static FrameworkElement RenderBarcode(BarcodeElement element)
