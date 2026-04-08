@@ -10,9 +10,9 @@
                         BorderBrush="#CCCCCC" BorderThickness="1"
                         Effect="{StaticResource LabelShadow}"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border.RenderTransform>
+                    <Border.LayoutTransform>
                         <ScaleTransform ScaleX="{Binding ZoomLevel}" ScaleY="{Binding ZoomLevel}"/>
-                    </Border.RenderTransform>
+                    </Border.LayoutTransform>
                     <Canvas x:Name="DesignCanvas" Width="189" Height="113"
                             Background="{Binding CurrentDocument.BackgroundColor, Converter={StaticResource ColorToBrush}}"
                             ClipToBounds="True"
