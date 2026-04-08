@@ -15,6 +15,7 @@
             <converters:MmToPixelConverter x:Key="MmToPixel"/>
             <converters:ColorStringToBrushConverter x:Key="ColorToBrush"/>
             <converters:ElementTypeToIconConverter x:Key="ElementTypeToIcon"/>
+            <converters:LabelThumbnailConverter x:Key="LabelThumbnail"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
