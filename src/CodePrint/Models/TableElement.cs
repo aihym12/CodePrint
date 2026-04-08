@@ -12,10 +12,16 @@ public class TableCell
 
 public class TableElement : LabelElement
 {
+    private int _rows = 3;
+    private int _columns = 3;
+    private string _borderColor = "#000000";
+    private double _borderThickness = 1;
+
     public TableElement() { Type = ElementType.Table; Name = "表格"; Width = 40; Height = 30; }
-    public int Rows { get; set; } = 3;
-    public int Columns { get; set; } = 3;
+
+    public int Rows { get => _rows; set => SetField(ref _rows, value); }
+    public int Columns { get => _columns; set => SetField(ref _columns, value); }
     public List<TableCell> Cells { get; set; } = new();
-    public string BorderColor { get; set; } = "#000000";
-    public double BorderThickness { get; set; } = 1;
+    public string BorderColor { get => _borderColor; set => SetField(ref _borderColor, value); }
+    public double BorderThickness { get => _borderThickness; set => SetField(ref _borderThickness, value); }
 }

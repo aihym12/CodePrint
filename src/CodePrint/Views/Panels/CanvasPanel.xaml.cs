@@ -104,7 +104,13 @@ public partial class CanvasPanel : UserControl
 
     private void RefreshAllElements()
     {
-        // Remove old visuals
+        // Unsubscribe from old elements and remove visuals
+        if (ViewModel?.CurrentDocument != null)
+        {
+            foreach (var element in ViewModel.CurrentDocument.Elements)
+                element.PropertyChanged -= OnElementPropertyChanged;
+        }
+
         foreach (var visual in _elementVisuals.Values)
             DesignCanvas.Children.Remove(visual);
         _elementVisuals.Clear();
@@ -123,10 +129,15 @@ public partial class CanvasPanel : UserControl
         visual.Cursor = Cursors.SizeAll;
         visual.MouseLeftButtonDown += ElementVisual_MouseLeftButtonDown;
         _elementVisuals[element.Id] = visual;
+
+        // Subscribe to property changes so PropertyPanel edits refresh the canvas
+        element.PropertyChanged += OnElementPropertyChanged;
     }
 
     private void RemoveElementVisual(LabelElement element)
     {
+        element.PropertyChanged -= OnElementPropertyChanged;
+
         if (_elementVisuals.TryGetValue(element.Id, out var visual))
         {
             DesignCanvas.Children.Remove(visual);
@@ -134,6 +145,53 @@ public partial class CanvasPanel : UserControl
         }
 
         ClearSelectionHandles();
+    }
+
+    private void OnElementPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (sender is not LabelElement element) return;
+        if (!_elementVisuals.ContainsKey(element.Id)) return;
+
+        var propName = e.PropertyName;
+
+        // During canvas drag we already update the visual manually, skip to avoid loops
+        if (_isDragging && (propName == nameof(LabelElement.X) || propName == nameof(LabelElement.Y)))
+            return;
+
+        switch (propName)
+        {
+            case nameof(LabelElement.X):
+            case nameof(LabelElement.Y):
+                // Position-only change: just move the visual
+                if (_elementVisuals.TryGetValue(element.Id, out var posVisual))
+                {
+                    Canvas.SetLeft(posVisual, element.X * MmToPx);
+                    Canvas.SetTop(posVisual, element.Y * MmToPx);
+                }
+                UpdateSelectionVisuals();
+                break;
+
+            case nameof(LabelElement.Opacity):
+                if (_elementVisuals.TryGetValue(element.Id, out var opVisual))
+                    opVisual.Opacity = element.Opacity;
+                break;
+
+            case nameof(LabelElement.ZIndex):
+                if (_elementVisuals.TryGetValue(element.Id, out var ziVisual))
+                    Panel.SetZIndex(ziVisual, element.ZIndex);
+                break;
+
+            case nameof(LabelElement.IsVisible):
+                if (_elementVisuals.TryGetValue(element.Id, out var visVisual))
+                    visVisual.Visibility = element.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+                break;
+
+            default:
+                // For all other properties (content, font, colors, size, rotation, etc.)
+                // do a full re-render of the element visual
+                RefreshElementVisual(element);
+                break;
+        }
     }
 
     private void UpdatePlaceholderVisibility()
@@ -419,6 +477,9 @@ public partial class CanvasPanel : UserControl
 
     private void RefreshElementVisual(LabelElement element)
     {
+        // Unsubscribe first to prevent double-subscription when AddElementVisual re-subscribes
+        element.PropertyChanged -= OnElementPropertyChanged;
+
         // Remove old visual
         if (_elementVisuals.TryGetValue(element.Id, out var oldVisual))
         {
@@ -427,7 +488,7 @@ public partial class CanvasPanel : UserControl
             _elementVisuals.Remove(element.Id);
         }
 
-        // Re-add with updated data
+        // Re-add with updated data (will re-subscribe to PropertyChanged)
         AddElementVisual(element);
         UpdateSelectionVisuals();
     }
