@@ -110,6 +110,26 @@ public partial class PrintViewModel : ObservableObject
 
             // Render document to a visual for printing
             var visual = RenderDocumentVisual();
+
+            // Compensate for the printer's non-printable margins so that content
+            // fills the physical paper from edge to edge. Without this offset,
+            // content starts at the imageable-area origin, leaving blank space
+            // at the bottom and right edges of the label.
+            try
+            {
+                var capabilities = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
+                if (capabilities.PageImageableArea != null)
+                {
+                    visual.Offset = new Vector(
+                        -capabilities.PageImageableArea.OriginWidth,
+                        -capabilities.PageImageableArea.OriginHeight);
+                }
+            }
+            catch
+            {
+                // If capabilities are unavailable, print without margin compensation
+            }
+
             printDialog.PrintVisual(visual, $"CodePrint - {Document.Name}");
 
             StatusText = "打印任务已发送";
