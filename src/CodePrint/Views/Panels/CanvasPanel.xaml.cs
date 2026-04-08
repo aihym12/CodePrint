@@ -42,6 +42,7 @@ public partial class CanvasPanel : UserControl
     private Point _rubberBandStart;
     private Rectangle? _rubberBandRect;
     private bool _didRubberBandDrag;
+    private const double RubberBandDragThreshold = 3.0;
 
     public CanvasPanel()
     {
@@ -461,8 +462,8 @@ public partial class CanvasPanel : UserControl
         var w = Math.Abs(current.X - _rubberBandStart.X);
         var h = Math.Abs(current.Y - _rubberBandStart.Y);
 
-        // Mark as drag if moved more than a tiny threshold (3 px)
-        if (w > 3 || h > 3)
+        // Mark as drag if moved more than a tiny threshold
+        if (w > RubberBandDragThreshold || h > RubberBandDragThreshold)
             _didRubberBandDrag = true;
 
         Canvas.SetLeft(_rubberBandRect, x);
