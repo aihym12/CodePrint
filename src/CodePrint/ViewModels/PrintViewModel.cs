@@ -14,7 +14,7 @@ namespace CodePrint.ViewModels;
 public partial class PrintViewModel : ObservableObject
 {
     [ObservableProperty]
-    private PrintSettings _settings = new();
+    private PrintSettings _settings = PrintSettingsService.Load();
 
     [ObservableProperty]
     private ObservableCollection<string> _availablePrinters = new();
@@ -55,8 +55,14 @@ public partial class PrintViewModel : ObservableObject
             AvailablePrinters.Add("Microsoft Print to PDF");
         }
 
-        if (AvailablePrinters.Count > 0 && SelectedPrinter == null)
-            SelectedPrinter = AvailablePrinters[0];
+        if (AvailablePrinters.Count > 0)
+        {
+            // Restore previously saved printer if available
+            if (!string.IsNullOrEmpty(Settings.PrinterName) && AvailablePrinters.Contains(Settings.PrinterName))
+                SelectedPrinter = Settings.PrinterName;
+            else if (SelectedPrinter == null)
+                SelectedPrinter = AvailablePrinters[0];
+        }
     }
 
     [RelayCommand]
@@ -69,6 +75,7 @@ public partial class PrintViewModel : ObservableObject
         }
 
         Settings.PrinterName = SelectedPrinter;
+        SaveSettings();
 
         try
         {
@@ -121,6 +128,14 @@ public partial class PrintViewModel : ObservableObject
     private void Cancel()
     {
         RequestClose?.Invoke(false);
+    }
+
+    /// <summary>Persists the current settings to disk so they are restored next time.</summary>
+    public void SaveSettings()
+    {
+        if (!string.IsNullOrEmpty(SelectedPrinter))
+            Settings.PrinterName = SelectedPrinter;
+        PrintSettingsService.Save(Settings);
     }
 
     /// <summary>Print resolution in DPI. Read from application settings. Higher values produce sharper output on thermal printers like Qirui QR-488 (203 DPI native).
