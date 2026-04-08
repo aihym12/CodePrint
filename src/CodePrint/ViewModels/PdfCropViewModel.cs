@@ -438,25 +438,6 @@ public partial class PdfCropViewModel : ObservableObject
             // For thermal printers: ensure portrait orientation (width = printhead, height = feed)
             printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Portrait;
 
-            // Query printer's imageable (printable) area to avoid content being clipped
-            // at non-printable edges. Without this, content placed at (0,0) can overflow
-            // the physical paper edges on thermal printers like QR-488.
-            double printOffsetX = 0, printOffsetY = 0;
-            double printableW = pageW, printableH = pageH;
-            try
-            {
-                var capabilities = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
-                var area = capabilities.PageImageableArea;
-                if (area != null)
-                {
-                    printOffsetX = area.OriginWidth;
-                    printOffsetY = area.OriginHeight;
-                    printableW = area.ExtentWidth;
-                    printableH = area.ExtentHeight;
-                }
-            }
-            catch { /* Printer doesn't report imageable area; use full page */ }
-
             var startIdx = pageFrom - 1;
             var endIdx = pageTo - 1;
 
@@ -468,8 +449,7 @@ public partial class PdfCropViewModel : ObservableObject
                 // Single column: one page per PDF page
                 for (int i = startIdx; i <= endIdx; i++)
                 {
-                    var page = await CreateFixedPageAsync(i, labelW, labelH,
-                        printOffsetX, printOffsetY, printableW, printableH);
+                    var page = await CreateFixedPageAsync(i, labelW, labelH);
                     var content = new PageContent();
                     ((IAddChild)content).AddChild(page);
                     doc.Pages.Add(content);
@@ -482,7 +462,8 @@ public partial class PdfCropViewModel : ObservableObject
                 for (int i = startIdx; i <= endIdx; i++)
                     pageIndices.Add(i);
 
-                var perColumnW = printableW / columns;
+                // Each column gets exactly one label width; total page width = labelW * columns
+                var perColumnW = labelW;
 
                 for (int g = 0; g < pageIndices.Count; g += columns)
                 {
@@ -494,19 +475,18 @@ public partial class PdfCropViewModel : ObservableObject
                         var img = await _pdfService.RenderPageAsync(pageIndices[g + c], dpi);
                         if (img != null)
                         {
-                            var rect = FitImageToRect(img, perColumnW, printableH);
                             var imgCtrl = new System.Windows.Controls.Image
                             {
                                 Source = img,
-                                Width = rect.Width,
-                                Height = rect.Height,
-                                Stretch = Stretch.Uniform,
+                                Width = perColumnW,
+                                Height = pageH,
+                                Stretch = Stretch.Fill,
                                 UseLayoutRounding = true,
                                 SnapsToDevicePixels = true
                             };
                             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-                            FixedPage.SetLeft(imgCtrl, printOffsetX + c * perColumnW + rect.X);
-                            FixedPage.SetTop(imgCtrl, printOffsetY + rect.Y);
+                            FixedPage.SetLeft(imgCtrl, c * perColumnW);
+                            FixedPage.SetTop(imgCtrl, 0);
                             fixedPage.Children.Add(imgCtrl);
                         }
                     }
@@ -625,8 +605,7 @@ public partial class PdfCropViewModel : ObservableObject
         }
     }
 
-    private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double pageW, double pageH,
-        double printX, double printY, double printW, double printH)
+    private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double pageW, double pageH)
     {
         var page = new FixedPage { Width = pageW, Height = pageH };
 
@@ -635,19 +614,20 @@ public partial class PdfCropViewModel : ObservableObject
 
         if (img != null)
         {
-            var rect = FitImageToRect(img, printW, printH);
+            // Fill the entire label area; the PDF content is designed for the selected
+            // paper size so we stretch to fill without leaving white margins.
             var imgCtrl = new System.Windows.Controls.Image
             {
                 Source = img,
-                Width = rect.Width,
-                Height = rect.Height,
-                Stretch = Stretch.Uniform,
+                Width = pageW,
+                Height = pageH,
+                Stretch = Stretch.Fill,
                 UseLayoutRounding = true,
                 SnapsToDevicePixels = true
             };
             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-            FixedPage.SetLeft(imgCtrl, printX + rect.X);
-            FixedPage.SetTop(imgCtrl, printY + rect.Y);
+            FixedPage.SetLeft(imgCtrl, 0);
+            FixedPage.SetTop(imgCtrl, 0);
             page.Children.Add(imgCtrl);
         }
 
@@ -655,15 +635,5 @@ public partial class PdfCropViewModel : ObservableObject
         page.Arrange(new Rect(0, 0, pageW, pageH));
         page.UpdateLayout();
         return page;
-    }
-
-    private static Rect FitImageToRect(BitmapSource img, double boxW, double boxH)
-    {
-        var scaleX = boxW / img.PixelWidth;
-        var scaleY = boxH / img.PixelHeight;
-        var scale = Math.Min(scaleX, scaleY);
-        var w = img.PixelWidth * scale;
-        var h = img.PixelHeight * scale;
-        return new Rect((boxW - w) / 2, (boxH - h) / 2, w, h);
     }
 }
