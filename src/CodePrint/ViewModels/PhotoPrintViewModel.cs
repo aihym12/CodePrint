@@ -165,7 +165,6 @@ public partial class PhotoPrintViewModel : ObservableObject
 
         // Set high-quality rendering hints for sharp print output
         RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
-        RenderOptions.SetEdgeMode(visual, EdgeMode.Aliased);
 
         using (var dc = visual.RenderOpen())
         {

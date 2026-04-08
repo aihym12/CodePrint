@@ -154,7 +154,6 @@ public partial class PrintViewModel : ObservableObject
         TextOptions.SetTextFormattingMode(canvas, TextFormattingMode.Ideal);
         TextOptions.SetTextHintingMode(canvas, TextHintingMode.Fixed);
         RenderOptions.SetBitmapScalingMode(canvas, BitmapScalingMode.HighQuality);
-        RenderOptions.SetEdgeMode(canvas, EdgeMode.Aliased);
         canvas.UseLayoutRounding = true;
         canvas.SnapsToDevicePixels = true;
 
