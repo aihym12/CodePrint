@@ -127,7 +127,6 @@ public partial class PrintViewModel : ObservableObject
     [RelayCommand]
     private void Cancel()
     {
-        SaveSettings();
         RequestClose?.Invoke(false);
     }
 
