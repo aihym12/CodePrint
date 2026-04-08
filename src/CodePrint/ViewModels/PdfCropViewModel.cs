@@ -438,39 +438,18 @@ public partial class PdfCropViewModel : ObservableObject
             // For thermal printers: ensure portrait orientation (width = printhead, height = feed)
             printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Portrait;
 
-            // Get the printer's imageable-area origin so we can compensate for
-            // the offset that the WPF printing pipeline applies.  Without this
-            // compensation the content is shifted down/right by (OriginWidth,
-            // OriginHeight), which pushes the bottom/right off the physical page
-            // and leaves visible blank space.
-            double originX = 0, originY = 0;
-            try
-            {
-                var caps = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
-                if (caps.PageImageableArea != null)
-                {
-                    originX = caps.PageImageableArea.OriginWidth;
-                    originY = caps.PageImageableArea.OriginHeight;
-                }
-            }
-            catch
-            {
-                // If capabilities are unavailable, assume zero offset
-            }
-
             var startIdx = pageFrom - 1;
             var endIdx = pageTo - 1;
 
             StatusText = $"正在渲染 {endIdx - startIdx + 1} 页…";
             var doc = new FixedDocument();
-            doc.DocumentPaginator.PageSize = new Size(pageW, pageH);
 
             if (columns == 1)
             {
                 // Single column: one page per PDF page
                 for (int i = startIdx; i <= endIdx; i++)
                 {
-                    var page = await CreateFixedPageAsync(i, labelW, labelH, originX, originY);
+                    var page = await CreateFixedPageAsync(i, labelW, labelH);
                     var content = new PageContent();
                     ((IAddChild)content).AddChild(page);
                     doc.Pages.Add(content);
@@ -506,8 +485,8 @@ public partial class PdfCropViewModel : ObservableObject
                                 SnapsToDevicePixels = true
                             };
                             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-                            FixedPage.SetLeft(imgCtrl, c * perColumnW - originX);
-                            FixedPage.SetTop(imgCtrl, -originY);
+                            FixedPage.SetLeft(imgCtrl, c * perColumnW);
+                            FixedPage.SetTop(imgCtrl, 0);
                             fixedPage.Children.Add(imgCtrl);
                         }
                     }
@@ -626,7 +605,7 @@ public partial class PdfCropViewModel : ObservableObject
         }
     }
 
-    private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double pageW, double pageH, double originX, double originY)
+    private async Task<FixedPage> CreateFixedPageAsync(int pageIndex, double pageW, double pageH)
     {
         var page = new FixedPage { Width = pageW, Height = pageH };
 
@@ -635,9 +614,8 @@ public partial class PdfCropViewModel : ObservableObject
 
         if (img != null)
         {
-            // Fill the entire label area; position at (-originX, -originY) to
-            // compensate for the imageable-area offset that the WPF printing
-            // pipeline applies, so content starts at the physical page corner.
+            // Fill the entire label area; the PDF content is designed for the selected
+            // paper size so we stretch to fill without leaving white margins.
             var imgCtrl = new System.Windows.Controls.Image
             {
                 Source = img,
@@ -648,8 +626,8 @@ public partial class PdfCropViewModel : ObservableObject
                 SnapsToDevicePixels = true
             };
             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-            FixedPage.SetLeft(imgCtrl, -originX);
-            FixedPage.SetTop(imgCtrl, -originY);
+            FixedPage.SetLeft(imgCtrl, 0);
+            FixedPage.SetTop(imgCtrl, 0);
             page.Children.Add(imgCtrl);
         }
 
