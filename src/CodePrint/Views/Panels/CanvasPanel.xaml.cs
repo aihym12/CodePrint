@@ -230,6 +230,28 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
+        // Ctrl+Click → toggle element in multi-selection
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            if (ViewModel.SelectedElements.Contains(element))
+            {
+                ViewModel.SelectedElements.Remove(element);
+                if (ViewModel.SelectedElement == element)
+                    ViewModel.SelectedElement = ViewModel.SelectedElements.Count > 0 ? ViewModel.SelectedElements[0] : null;
+            }
+            else
+            {
+                ViewModel.SelectedElements.Add(element);
+                ViewModel.SelectedElement = element;
+            }
+            UpdateSelectionVisuals();
+            e.Handled = true;
+            return;
+        }
+
+        // Normal click → single selection (clear multi-selection)
+        ViewModel.SelectedElements.Clear();
+        ViewModel.SelectedElements.Add(element);
         ViewModel.SelectedElement = element;
         UpdateSelectionVisuals();
 
@@ -601,7 +623,37 @@ public partial class CanvasPanel : UserControl
     {
         ClearSelectionHandles();
 
-        if (ViewModel?.SelectedElement == null) return;
+        if (ViewModel == null) return;
+
+        // Draw selection border for all selected elements
+        foreach (var sel in ViewModel.SelectedElements)
+        {
+            if (sel == ViewModel.SelectedElement) continue; // primary element drawn separately with handles
+
+            var sx = sel.X * MmToPx;
+            var sy = sel.Y * MmToPx;
+            var sw = sel.Width * MmToPx;
+            var sh = sel.Height * MmToPx;
+
+            var selBorder = new Rectangle
+            {
+                Width = sw + 4,
+                Height = sh + 4,
+                Stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2")),
+                StrokeThickness = 1.5,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                Fill = Brushes.Transparent,
+                IsHitTestVisible = false
+            };
+            Canvas.SetLeft(selBorder, sx - 2);
+            Canvas.SetTop(selBorder, sy - 2);
+            Panel.SetZIndex(selBorder, int.MaxValue - 1);
+            DesignCanvas.Children.Add(selBorder);
+            _selectionHandles.Add(selBorder);
+        }
+
+        // Draw primary selection with resize handles
+        if (ViewModel.SelectedElement == null) return;
 
         var element = ViewModel.SelectedElement;
         var x = element.X * MmToPx;

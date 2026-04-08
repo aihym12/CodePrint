@@ -393,6 +393,16 @@ public partial class MainWindow : Window
         return DisplayToFontFamily.TryGetValue(displayName, out var family) ? family : displayName;
     }
 
+    /// <summary>Returns all elements to apply toolbar changes to (multi-select aware).</summary>
+    private IEnumerable<LabelElement> GetTargetElements()
+    {
+        if (ViewModel.SelectedElements.Count > 1)
+            return ViewModel.SelectedElements;
+        if (ViewModel.SelectedElement != null)
+            return new[] { ViewModel.SelectedElement };
+        return Enumerable.Empty<LabelElement>();
+    }
+
     private void FontFamilyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingToolbar) return;
@@ -400,11 +410,12 @@ public partial class MainWindow : Window
         if (FontFamilyCombo.SelectedItem is ComboBoxItem item && item.Content is string displayName)
         {
             var familyName = FontDisplayToFamily(displayName);
-            var element = ViewModel.SelectedElement;
-
-            if (element is TextElement text) text.FontFamily = familyName;
-            else if (element is DateElement date) date.FontFamily = familyName;
-            else if (element is WatermarkElement watermark) watermark.FontFamily = familyName;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.FontFamily = familyName;
+                else if (element is DateElement date) date.FontFamily = familyName;
+                else if (element is WatermarkElement watermark) watermark.FontFamily = familyName;
+            }
         }
     }
 
@@ -440,10 +451,12 @@ public partial class MainWindow : Window
 
         if (text != null && double.TryParse(text, out var size) && size >= 1 && size <= 200)
         {
-            var element = ViewModel.SelectedElement;
-            if (element is TextElement textEl) textEl.FontSize = size;
-            else if (element is DateElement dateEl) dateEl.FontSize = size;
-            else if (element is WatermarkElement watermarkEl) watermarkEl.FontSize = size;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement textEl) textEl.FontSize = size;
+                else if (element is DateElement dateEl) dateEl.FontSize = size;
+                else if (element is WatermarkElement watermarkEl) watermarkEl.FontSize = size;
+            }
         }
     }
 
@@ -465,9 +478,13 @@ public partial class MainWindow : Window
     private void ApplyLetterSpacing()
     {
         if (_isSyncingToolbar) return;
-        if (ViewModel.SelectedElement is TextElement text && double.TryParse(LetterSpacingBox.Text, out var spacing)
-            && spacing >= -10 && spacing <= 100)
-            text.LetterSpacing = spacing;
+        if (double.TryParse(LetterSpacingBox.Text, out var spacing) && spacing >= -10 && spacing <= 100)
+        {
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.LetterSpacing = spacing;
+            }
+        }
     }
 
     private void LineSpacingBox_LostFocus(object sender, RoutedEventArgs e)
@@ -488,60 +505,87 @@ public partial class MainWindow : Window
     private void ApplyLineSpacing()
     {
         if (_isSyncingToolbar) return;
-        if (ViewModel.SelectedElement is TextElement text && double.TryParse(LineSpacingBox.Text, out var spacing)
-            && spacing >= 0.5 && spacing <= 10)
-            text.LineSpacing = spacing;
+        if (double.TryParse(LineSpacingBox.Text, out var spacing) && spacing >= 0.5 && spacing <= 10)
+        {
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.LineSpacing = spacing;
+            }
+        }
     }
 
     private void BoldButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement text)
+        // Determine toggle state from primary selected element
+        if (ViewModel.SelectedElement is TextElement primary)
         {
-            text.IsBold = !text.IsBold;
-            UpdateToggleButtonAppearance(BoldButton, text.IsBold);
+            var newValue = !primary.IsBold;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.IsBold = newValue;
+            }
+            UpdateToggleButtonAppearance(BoldButton, newValue);
         }
     }
 
     private void ItalicButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement text)
+        if (ViewModel.SelectedElement is TextElement primary)
         {
-            text.IsItalic = !text.IsItalic;
-            UpdateToggleButtonAppearance(ItalicButton, text.IsItalic);
+            var newValue = !primary.IsItalic;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.IsItalic = newValue;
+            }
+            UpdateToggleButtonAppearance(ItalicButton, newValue);
         }
     }
 
     private void UnderlineButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement text)
+        if (ViewModel.SelectedElement is TextElement primary)
         {
-            text.IsUnderline = !text.IsUnderline;
-            UpdateToggleButtonAppearance(UnderlineButton, text.IsUnderline);
+            var newValue = !primary.IsUnderline;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.IsUnderline = newValue;
+            }
+            UpdateToggleButtonAppearance(UnderlineButton, newValue);
         }
     }
 
     private void StrikethroughButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement text)
+        if (ViewModel.SelectedElement is TextElement primary)
         {
-            text.IsStrikethrough = !text.IsStrikethrough;
-            UpdateToggleButtonAppearance(StrikethroughButton, text.IsStrikethrough);
+            var newValue = !primary.IsStrikethrough;
+            foreach (var element in GetTargetElements())
+            {
+                if (element is TextElement text) text.IsStrikethrough = newValue;
+            }
+            UpdateToggleButtonAppearance(StrikethroughButton, newValue);
         }
     }
 
     private void ApplyTextAlignment(Models.TextAlignment alignment)
     {
-        if (ViewModel.SelectedElement is TextElement text)
+        var targets = GetTargetElements().ToList();
+        if (targets.Count == 0) return;
+
+        foreach (var element in targets)
         {
-            text.TextAlignment = alignment;
-            if (ViewModel.CurrentDocument != null)
+            if (element is TextElement text)
             {
-                var canvasWidth = ViewModel.CurrentDocument.WidthMm;
-                text.X = 0;
-                text.Width = canvasWidth;
+                text.TextAlignment = alignment;
+                if (ViewModel.CurrentDocument != null)
+                {
+                    var canvasWidth = ViewModel.CurrentDocument.WidthMm;
+                    text.X = 0;
+                    text.Width = canvasWidth;
+                }
             }
-            SyncTextAlignmentButtons(alignment);
         }
+        SyncTextAlignmentButtons(alignment);
     }
 
     private void TextAlignLeftButton_Click(object sender, RoutedEventArgs e)
