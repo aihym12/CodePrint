@@ -188,7 +188,7 @@ public partial class PropertyPanel : UserControl
         {
             Source = source,
             Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            UpdateSourceTrigger = UpdateSourceTrigger.LostFocus
         };
         textBox.SetBinding(TextBox.TextProperty, binding);
 

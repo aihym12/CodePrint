@@ -30,19 +30,19 @@
 
                         <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,4,4">
                             <TextBlock Text="x (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
-                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.X, StringFormat={}{0:F2}, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.X, StringFormat={}{0:F2}, UpdateSourceTrigger=LostFocus}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Margin="4,0,0,4">
                             <TextBlock Text="y (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
-                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Y, StringFormat={}{0:F2}, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Y, StringFormat={}{0:F2}, UpdateSourceTrigger=LostFocus}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,4,4">
                             <TextBlock Text="w (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
-                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Width, StringFormat={}{0:F2}, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Width, StringFormat={}{0:F2}, UpdateSourceTrigger=LostFocus}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Margin="4,0,0,4">
                             <TextBlock Text="h (mm)" FontSize="11" Foreground="#888" Margin="0,0,0,2"/>
-                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Height, StringFormat={}{0:F2}, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Style="{StaticResource PropertyTextBox}" Text="{Binding SelectedElement.Height, StringFormat={}{0:F2}, UpdateSourceTrigger=LostFocus}"/>
                         </StackPanel>
                     </Grid>
 
@@ -61,7 +61,7 @@
                             </Grid.ColumnDefinitions>
                             <Slider Minimum="0" Maximum="360" Value="{Binding SelectedElement.Rotation}" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="1" Style="{StaticResource PropertyTextBox}"
-                                     Text="{Binding SelectedElement.Rotation, StringFormat={}{0:F0}°, UpdateSourceTrigger=PropertyChanged}" Margin="4,0,0,0"/>
+                                     Text="{Binding SelectedElement.Rotation, StringFormat={}{0:F0}°, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0"/>
                         </Grid>
                     </StackPanel>
 
@@ -74,7 +74,7 @@
                             </Grid.ColumnDefinitions>
                             <Slider Minimum="0" Maximum="1" Value="{Binding SelectedElement.Opacity}" SmallChange="0.01" LargeChange="0.1" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="1" Style="{StaticResource PropertyTextBox}"
-                                     Text="{Binding SelectedElement.Opacity, StringFormat={}{0:P0}, UpdateSourceTrigger=PropertyChanged}" Margin="4,0,0,0"/>
+                                     Text="{Binding SelectedElement.Opacity, StringFormat={}{0:P0}, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0"/>
                         </Grid>
                     </StackPanel>
 
