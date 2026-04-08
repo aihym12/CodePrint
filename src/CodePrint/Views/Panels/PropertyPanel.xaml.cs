@@ -260,7 +260,7 @@ public partial class PropertyPanel : UserControl
                 source.TextAlignment = capturedAlignment;
 
                 // Align element relative to the canvas (label document)
-                if (DataContext is MainViewModel vm)
+                if (DataContext is MainViewModel vm && vm.CurrentDocument != null)
                 {
                     var canvasWidth = vm.CurrentDocument.WidthMm;
                     source.X = 0;

@@ -516,9 +516,12 @@ public partial class MainWindow : Window
         if (ViewModel.SelectedElement is TextElement text)
         {
             text.TextAlignment = alignment;
-            var canvasWidth = ViewModel.CurrentDocument.WidthMm;
-            text.X = 0;
-            text.Width = canvasWidth;
+            if (ViewModel.CurrentDocument != null)
+            {
+                var canvasWidth = ViewModel.CurrentDocument.WidthMm;
+                text.X = 0;
+                text.Width = canvasWidth;
+            }
             SyncTextAlignmentButtons(alignment);
         }
     }
