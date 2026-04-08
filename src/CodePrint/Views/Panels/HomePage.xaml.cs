@@ -121,6 +121,24 @@ public partial class HomePage : UserControl
         };
         document.Elements.Add(imageElement);
 
+        // Add an editable TextElement so users can add text on top of the image
+        var textElement = new TextElement
+        {
+            Name = "文本",
+            Content = "双击编辑文字",
+            X = widthMm * 0.1,
+            Y = heightMm * 0.85,
+            Width = widthMm * 0.8,
+            Height = Math.Max(heightMm * 0.1, 8),
+            FontSize = 14,
+            ForegroundColor = "#FFFFFF",
+            BackgroundColor = "Transparent",
+            IsLocked = false,
+            ZIndex = 1,
+            TextAlignment = Models.TextAlignment.Center
+        };
+        document.Elements.Add(textElement);
+
         ViewModel.ConfirmNewLabel(document);
     }
 }
