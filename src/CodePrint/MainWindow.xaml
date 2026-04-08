@@ -133,10 +133,10 @@
                         <Button x:Name="UnderlineButton" Content="U" Style="{StaticResource FormatButton}" ToolTip="下划线" Click="UnderlineButton_Click"/>
                         <Button x:Name="StrikethroughButton" Content="S" Style="{StaticResource FormatButton}" ToolTip="删除线" Click="StrikethroughButton_Click"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
-                        <Button Content="≡⫷" Style="{StaticResource FormatButton}" ToolTip="左对齐"/>
-                        <Button Content="≡⊟" Style="{StaticResource FormatButton}" ToolTip="居中"/>
-                        <Button Content="≡⫸" Style="{StaticResource FormatButton}" ToolTip="右对齐"/>
-                        <Button Content="≡≡" Style="{StaticResource FormatButton}" ToolTip="两端对齐"/>
+                        <Button x:Name="AlignLeftFormatButton" Content="≡⫷" Style="{StaticResource FormatButton}" ToolTip="左对齐" Click="TextAlignLeftButton_Click"/>
+                        <Button x:Name="AlignCenterFormatButton" Content="≡⊟" Style="{StaticResource FormatButton}" ToolTip="居中" Click="TextAlignCenterButton_Click"/>
+                        <Button x:Name="AlignRightFormatButton" Content="≡⫸" Style="{StaticResource FormatButton}" ToolTip="右对齐" Click="TextAlignRightButton_Click"/>
+                        <Button x:Name="AlignJustifyFormatButton" Content="≡≡" Style="{StaticResource FormatButton}" ToolTip="两端对齐" Click="TextAlignJustifyButton_Click"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <TextBlock Text="x:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
                         <TextBox x:Name="ElementXBox" Width="50" VerticalContentAlignment="Center" FontSize="11"

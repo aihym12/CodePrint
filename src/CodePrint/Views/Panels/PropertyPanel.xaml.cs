@@ -258,6 +258,15 @@ public partial class PropertyPanel : UserControl
             btn.Click += (s, e) =>
             {
                 source.TextAlignment = capturedAlignment;
+
+                // Align element relative to the canvas (label document)
+                if (DataContext is MainViewModel vm && vm.CurrentDocument != null)
+                {
+                    var canvasWidth = vm.CurrentDocument.WidthMm;
+                    source.X = 0;
+                    source.Width = canvasWidth;
+                }
+
                 foreach (var b in buttons)
                     UpdateAlignmentButtonAppearance(b, (Models.TextAlignment)b.Tag == capturedAlignment);
             };
