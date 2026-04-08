@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CodePrint.Helpers;
@@ -108,29 +110,42 @@ public partial class PrintViewModel : ObservableObject
                 : System.Printing.PageOrientation.Portrait;
             printDialog.PrintTicket.CopyCount = Settings.Copies;
 
-            // Render document to a visual for printing
-            var visual = RenderDocumentVisual();
+            // Render label content to a high-DPI bitmap
+            var renderBitmap = RenderLabelBitmap();
 
-            // Compensate for the printer's non-printable margins so that content
-            // fills the physical paper from edge to edge. Without this offset,
-            // content starts at the imageable-area origin, leaving blank space
-            // at the bottom and right edges of the label.
-            try
+            // Build a FixedDocument whose FixedPage places (0,0) at the physical
+            // page origin. Unlike PrintVisual (which maps content to the
+            // imageable-area origin, leaving blank space at the bottom/right),
+            // FixedPage fills the paper from edge to edge.
+            var fixedPage = new FixedPage { Width = pageW, Height = pageH };
+
+            for (int r = 0; r < rows; r++)
             {
-                var capabilities = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
-                if (capabilities.PageImageableArea != null)
+                for (int c = 0; c < cols; c++)
                 {
-                    visual.Offset = new Vector(
-                        -capabilities.PageImageableArea.OriginWidth,
-                        -capabilities.PageImageableArea.OriginHeight);
+                    var img = new Image
+                    {
+                        Source = renderBitmap,
+                        Width = labelW,
+                        Height = labelH,
+                        Stretch = Stretch.Fill
+                    };
+                    FixedPage.SetLeft(img, c * labelW);
+                    FixedPage.SetTop(img, r * labelH);
+                    fixedPage.Children.Add(img);
                 }
             }
-            catch
-            {
-                // If capabilities are unavailable, print without margin compensation
-            }
 
-            printDialog.PrintVisual(visual, $"CodePrint - {Document.Name}");
+            fixedPage.Measure(new Size(pageW, pageH));
+            fixedPage.Arrange(new Rect(0, 0, pageW, pageH));
+            fixedPage.UpdateLayout();
+
+            var fixedDoc = new FixedDocument();
+            fixedDoc.DocumentPaginator.PageSize = new Size(pageW, pageH);
+            var pageContent = new PageContent { Child = fixedPage };
+            fixedDoc.Pages.Add(pageContent);
+
+            printDialog.PrintDocument(fixedDoc.DocumentPaginator, $"CodePrint - {Document.Name}");
 
             StatusText = "打印任务已发送";
             RequestClose?.Invoke(true);
@@ -164,10 +179,9 @@ public partial class PrintViewModel : ObservableObject
     /// <summary>Print resolution in DPI. Uses per-print setting if set, otherwise falls back to global app setting.</summary>
     private int PrintDpi => Settings.PrintDpi > 0 ? Settings.PrintDpi : AppSettingsService.Current.PrintDpi;
 
-    /// <summary>Renders the current document into a visual element suitable for printing.</summary>
-    private DrawingVisual RenderDocumentVisual()
+    /// <summary>Renders the label content to a high-DPI bitmap for printing.</summary>
+    private RenderTargetBitmap RenderLabelBitmap()
     {
-        var visual = new DrawingVisual();
         var mmToPx = DesignConstants.MmToPixel;
 
         double docWidth = Document!.WidthMm * mmToPx;
@@ -179,7 +193,7 @@ public partial class PrintViewModel : ObservableObject
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString(Document.BackgroundColor));
 
         // Render label content to a bitmap at high DPI for sharp printing
-        var canvas = new Canvas { Width = docWidth, Height = docHeight };
+        var canvas = new Canvas { Width = docWidth, Height = docHeight, Background = bgBrush };
         foreach (var element in Document.Elements.OrderBy(e => e.ZIndex))
         {
             if (!element.IsVisible) continue;
@@ -203,34 +217,10 @@ public partial class PrintViewModel : ObservableObject
         double dpiScale = PrintDpi / 96.0;
         int bitmapWidth = (int)Math.Max(1, docWidth * dpiScale);
         int bitmapHeight = (int)Math.Max(1, docHeight * dpiScale);
-        var renderBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+        var renderBitmap = new RenderTargetBitmap(
             bitmapWidth, bitmapHeight, PrintDpi, PrintDpi, PixelFormats.Pbgra32);
         renderBitmap.Render(canvas);
 
-        int rows = Math.Max(1, Settings.LabelsPerRow);
-        int cols = Math.Max(1, Settings.LabelsPerColumn);
-        double labelW = Settings.PaperWidth * mmToPx;
-        double labelH = Settings.PaperHeight * mmToPx;
-
-        using (var dc = visual.RenderOpen())
-        {
-            // Tile the label across the page for multi-label layouts
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < cols; c++)
-                {
-                    double x = c * labelW;
-                    double y = r * labelH;
-
-                    // Draw label background
-                    dc.DrawRectangle(bgBrush, null, new Rect(x, y, labelW, labelH));
-
-                    // Draw label content scaled to the label cell
-                    dc.DrawImage(renderBitmap, new Rect(x, y, labelW, labelH));
-                }
-            }
-        }
-
-        return visual;
+        return renderBitmap;
     }
 }
