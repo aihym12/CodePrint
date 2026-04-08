@@ -18,6 +18,9 @@ public partial class CanvasPanel : UserControl
     private double _elementStartX;
     private double _elementStartY;
 
+    // Multi-element drag: stores original positions of all selected elements
+    private readonly Dictionary<string, (double X, double Y)> _multiDragStartPositions = new();
+
     // Resize state
     private bool _isResizing;
     private int _resizeHandleIndex = -1; // 0=TL, 1=TR, 2=BL, 3=BR
@@ -37,8 +40,9 @@ public partial class CanvasPanel : UserControl
     private TextBox? _inlineEditor;
     private LabelElement? _editingElement;
 
-    // Rubber band (marquee) selection state
+    // Rubber band (marquee) selection state (works with both left-click on blank area and right-click)
     private bool _isRubberBandSelecting;
+    private MouseButton _rubberBandButton; // which button started the rubber band
     private Point _rubberBandStart;
     private Rectangle? _rubberBandRect;
     private bool _didRubberBandDrag;
@@ -237,11 +241,39 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
-        // Normal click → single selection (clear multi-selection)
-        ViewModel.SelectedElements.Clear();
-        ViewModel.SelectedElements.Add(element);
-        ViewModel.SelectedElement = element;
-        UpdateSelectionVisuals();
+        // Ctrl+Click → toggle element in multi-selection
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            if (ViewModel.SelectedElements.Contains(element))
+            {
+                ViewModel.SelectedElements.Remove(element);
+                if (ViewModel.SelectedElement == element)
+                    ViewModel.SelectedElement = ViewModel.SelectedElements.Count > 0 ? ViewModel.SelectedElements[0] : null;
+            }
+            else
+            {
+                ViewModel.SelectedElements.Add(element);
+                ViewModel.SelectedElement = element;
+            }
+            UpdateSelectionVisuals();
+            e.Handled = true;
+            return;
+        }
+
+        // Click on an element that is already part of multi-selection → keep multi-selection, set primary
+        if (ViewModel.SelectedElements.Count > 1 && ViewModel.SelectedElements.Contains(element))
+        {
+            ViewModel.SelectedElement = element;
+            UpdateSelectionVisuals();
+        }
+        else
+        {
+            // Normal click → single selection (clear multi-selection)
+            ViewModel.SelectedElements.Clear();
+            ViewModel.SelectedElements.Add(element);
+            ViewModel.SelectedElement = element;
+            UpdateSelectionVisuals();
+        }
 
         if (element.IsLocked)
         {
@@ -249,11 +281,20 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
-        // Start drag
+        // Start drag (move all selected elements together)
         _isDragging = true;
         _dragStart = e.GetPosition(DesignCanvas);
         _elementStartX = element.X;
         _elementStartY = element.Y;
+
+        // Record start positions for all selected elements (multi-drag)
+        _multiDragStartPositions.Clear();
+        foreach (var sel in ViewModel.SelectedElements)
+        {
+            if (!sel.IsLocked)
+                _multiDragStartPositions[sel.Id] = (sel.X, sel.Y);
+        }
+
         fe.CaptureMouse();
         e.Handled = true;
     }
@@ -297,10 +338,10 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
-        // Single click on empty area → deselect
-        ViewModel.SelectedElement = null;
-        ViewModel.SelectedElements.Clear();
-        ClearSelectionHandles();
+        // Single click on empty area → start left-click rubber band selection
+        StartRubberBand(e.GetPosition(DesignCanvas), MouseButton.Left);
+        DesignCanvas.CaptureMouse();
+        e.Handled = true;
     }
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
@@ -320,18 +361,38 @@ public partial class CanvasPanel : UserControl
 
         if (!_isDragging || ViewModel?.SelectedElement == null) return;
 
+        var selectedElement = ViewModel.SelectedElement;
         var pos = e.GetPosition(DesignCanvas);
         var dx = (pos.X - _dragStart.X) / MmToPx;
         var dy = (pos.Y - _dragStart.Y) / MmToPx;
 
-        ViewModel.SelectedElement.X = _elementStartX + dx;
-        ViewModel.SelectedElement.Y = _elementStartY + dy;
-
-        // Update visual position
-        if (_elementVisuals.TryGetValue(ViewModel.SelectedElement.Id, out var visual))
+        // Move all selected elements together (multi-drag)
+        foreach (var kvp in _multiDragStartPositions)
         {
-            Canvas.SetLeft(visual, ViewModel.SelectedElement.X * MmToPx);
-            Canvas.SetTop(visual, ViewModel.SelectedElement.Y * MmToPx);
+            var el = ViewModel.CurrentDocument.Elements.FirstOrDefault(e2 => e2.Id == kvp.Key);
+            if (el == null) continue;
+
+            el.X = kvp.Value.X + dx;
+            el.Y = kvp.Value.Y + dy;
+
+            if (_elementVisuals.TryGetValue(el.Id, out var visual))
+            {
+                Canvas.SetLeft(visual, el.X * MmToPx);
+                Canvas.SetTop(visual, el.Y * MmToPx);
+            }
+        }
+
+        // Fallback: if primary element was not in multi-drag (e.g. single selection)
+        if (!_multiDragStartPositions.ContainsKey(selectedElement.Id))
+        {
+            selectedElement.X = _elementStartX + dx;
+            selectedElement.Y = _elementStartY + dy;
+
+            if (_elementVisuals.TryGetValue(selectedElement.Id, out var visual))
+            {
+                Canvas.SetLeft(visual, selectedElement.X * MmToPx);
+                Canvas.SetTop(visual, selectedElement.Y * MmToPx);
+            }
         }
 
         UpdateSelectionVisuals();
@@ -413,6 +474,23 @@ public partial class CanvasPanel : UserControl
             return;
         }
 
+        // Finish left-click rubber band selection
+        if (_isRubberBandSelecting && _rubberBandButton == MouseButton.Left)
+        {
+            FinishRubberBand();
+
+            // If no drag happened (just a click), deselect everything
+            if (!_didRubberBandDrag)
+            {
+                ViewModel!.SelectedElement = null;
+                ViewModel.SelectedElements.Clear();
+                ClearSelectionHandles();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (_isDragging && ViewModel?.SelectedElement != null)
         {
             // Find the element visual and release mouse
@@ -421,17 +499,19 @@ public partial class CanvasPanel : UserControl
         }
 
         _isDragging = false;
+        _multiDragStartPositions.Clear();
     }
 
-    // ── Right-Button Rubber Band (Marquee) Selection ──
+    // ── Rubber Band (Marquee) Selection ──
+    // Works with both left-click on blank canvas and right-click drag.
 
-    private void Canvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    /// <summary>Starts a rubber band selection with the given start position and mouse button.</summary>
+    private void StartRubberBand(Point startPosition, MouseButton button)
     {
-        if (ViewModel == null) return;
-
         _isRubberBandSelecting = true;
+        _rubberBandButton = button;
         _didRubberBandDrag = false;
-        _rubberBandStart = e.GetPosition(DesignCanvas);
+        _rubberBandStart = startPosition;
 
         // Create rubber band visual
         _rubberBandRect = new Rectangle
@@ -448,9 +528,31 @@ public partial class CanvasPanel : UserControl
         _rubberBandRect.Height = 0;
         Panel.SetZIndex(_rubberBandRect, int.MaxValue);
         DesignCanvas.Children.Add(_rubberBandRect);
+    }
 
+    /// <summary>Finishes the rubber band selection, removes the visual, and releases mouse capture.</summary>
+    private void FinishRubberBand()
+    {
+        _isRubberBandSelecting = false;
+        DesignCanvas.ReleaseMouseCapture();
+
+        // Remove rubber band visual
+        if (_rubberBandRect != null)
+        {
+            DesignCanvas.Children.Remove(_rubberBandRect);
+            _rubberBandRect = null;
+        }
+
+        UpdateSelectionVisuals();
+    }
+
+    private void Canvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        StartRubberBand(e.GetPosition(DesignCanvas), MouseButton.Right);
         DesignCanvas.CaptureMouse();
-        e.Handled = true;
+        e.Handled = true; // Prevent default right-click processing
     }
 
     private void UpdateRubberBand(Point current)
@@ -490,27 +592,24 @@ public partial class CanvasPanel : UserControl
         UpdateSelectionVisuals();
     }
 
-    private void Canvas_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    private void Canvas_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_isRubberBandSelecting) return;
+        if (!_isRubberBandSelecting || _rubberBandButton != MouseButton.Right) return;
 
-        _isRubberBandSelecting = false;
-        DesignCanvas.ReleaseMouseCapture();
+        FinishRubberBand();
 
-        // Remove rubber band visual
-        if (_rubberBandRect != null)
+        // Suppress the context menu if the user performed a rubber band drag
+        if (_didRubberBandDrag)
         {
-            DesignCanvas.Children.Remove(_rubberBandRect);
-            _rubberBandRect = null;
+            e.Handled = true; // Preview handler: prevents MouseRightButtonUp → no ContextMenu
         }
-
-        UpdateSelectionVisuals();
-        e.Handled = true;
+        // If no drag happened, allow context menu to open normally
     }
 
     private void Canvas_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
         // Suppress the context menu if the user just performed a rubber band drag
+        // (safety net – PreviewMouseRightButtonUp already handles this for right-click drags)
         if (_didRubberBandDrag)
         {
             e.Handled = true;

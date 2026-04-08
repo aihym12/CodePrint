@@ -294,6 +294,18 @@ public partial class MainWindow : Window
         {
             var element = ViewModel.SelectedElement;
 
+            // If the primary selected element is not a text-like element,
+            // fall back to the first TextElement in the multi-selection so
+            // that toolbar buttons remain functional after rubber-band selection.
+            if (element is not TextElement and not DateElement and not WatermarkElement
+                && ViewModel.SelectedElements.Count > 0)
+            {
+                element = ViewModel.SelectedElements.OfType<TextElement>().FirstOrDefault()
+                       ?? ViewModel.SelectedElements.OfType<DateElement>().FirstOrDefault()
+                       ?? (LabelElement?)ViewModel.SelectedElements.OfType<WatermarkElement>().FirstOrDefault()
+                       ?? element;
+            }
+
             string? fontFamily = null;
             double? fontSize = null;
             double letterSpacing = 0;
@@ -516,8 +528,9 @@ public partial class MainWindow : Window
 
     private void BoldButton_Click(object sender, RoutedEventArgs e)
     {
-        // Determine toggle state from primary selected element
-        if (ViewModel.SelectedElement is TextElement primary)
+        // Determine toggle state from the first TextElement in the selection
+        var primary = GetTargetElements().OfType<TextElement>().FirstOrDefault();
+        if (primary != null)
         {
             var newValue = !primary.IsBold;
             foreach (var element in GetTargetElements())
@@ -530,7 +543,8 @@ public partial class MainWindow : Window
 
     private void ItalicButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement primary)
+        var primary = GetTargetElements().OfType<TextElement>().FirstOrDefault();
+        if (primary != null)
         {
             var newValue = !primary.IsItalic;
             foreach (var element in GetTargetElements())
@@ -543,7 +557,8 @@ public partial class MainWindow : Window
 
     private void UnderlineButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement primary)
+        var primary = GetTargetElements().OfType<TextElement>().FirstOrDefault();
+        if (primary != null)
         {
             var newValue = !primary.IsUnderline;
             foreach (var element in GetTargetElements())
@@ -556,7 +571,8 @@ public partial class MainWindow : Window
 
     private void StrikethroughButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedElement is TextElement primary)
+        var primary = GetTargetElements().OfType<TextElement>().FirstOrDefault();
+        if (primary != null)
         {
             var newValue = !primary.IsStrikethrough;
             foreach (var element in GetTargetElements())
