@@ -678,18 +678,4 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>When the mouse leaves a toolbar TextBox, move focus away so the value is applied via LostFocus.</summary>
-    private void ToolbarTextBox_MouseLeave(object sender, MouseEventArgs e)
-    {
-        if (sender is UIElement element && element.IsFocused)
-        {
-            element.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-        }
-        // For an editable ComboBox, IsFocused is false because the inner TextBox has focus;
-        // use IsKeyboardFocusWithin to detect this case.
-        else if (sender is ComboBox combo && combo.IsKeyboardFocusWithin)
-        {
-            combo.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-        }
-    }
 }
