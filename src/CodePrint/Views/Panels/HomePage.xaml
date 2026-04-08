@@ -61,9 +61,11 @@
                        VerticalAlignment="Center" Margin="24,0"/>
         </Border>
 
-        <!-- Main Content: Three Entry Cards -->
+        <!-- Main Content: Four Entry Cards -->
         <Grid Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="60">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="40"/>
                 <ColumnDefinition Width="260"/>
                 <ColumnDefinition Width="40"/>
                 <ColumnDefinition Width="260"/>
@@ -130,6 +132,26 @@
                     </Border>
 
                     <TextBlock Grid.Row="1" Text="照片打印" FontSize="15" FontWeight="SemiBold"
+                               Foreground="#333" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                </Grid>
+            </Border>
+            <!-- Card 4: Import Photo as Template -->
+            <Border Grid.Column="6" Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
+                    CornerRadius="8" Cursor="Hand" Effect="{StaticResource CardShadow}"
+                    MouseLeftButtonUp="ImportImageTemplate_Click">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#EDE7F6" CornerRadius="50" Width="100" Height="100"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="📷" FontSize="44"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <TextBlock Grid.Row="1" Text="导入照片生成模板" FontSize="15" FontWeight="SemiBold"
                                Foreground="#333" HorizontalAlignment="Center" Margin="0,20,0,0"/>
                 </Grid>
             </Border>
