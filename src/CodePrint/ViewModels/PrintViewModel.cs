@@ -122,8 +122,9 @@ public partial class PrintViewModel : ObservableObject
         RequestClose?.Invoke(false);
     }
 
-    /// <summary>Print resolution in DPI. Higher values produce sharper output on thermal printers.</summary>
-    private const double PrintDpi = 300;
+    /// <summary>Print resolution in DPI. Higher values produce sharper output on thermal printers like Qirui QR-488 (203 DPI native).
+    /// Rendering at 600 DPI and letting the printer driver downsample produces significantly sharper text and barcodes.</summary>
+    private const double PrintDpi = 600;
 
     /// <summary>Renders the current document into a visual element suitable for printing.</summary>
     private DrawingVisual RenderDocumentVisual()
@@ -147,10 +148,14 @@ public partial class PrintViewModel : ObservableObject
             CanvasRendererHelper.RenderElement(canvas, element);
         }
 
-        // Enable high-quality text rendering
-        TextOptions.SetTextRenderingMode(canvas, TextRenderingMode.ClearType);
+        // Enable high-quality text rendering for print output
+        // Use Grayscale anti-aliasing instead of ClearType (ClearType is designed for LCD subpixels, not printers)
+        TextOptions.SetTextRenderingMode(canvas, TextRenderingMode.Grayscale);
         TextOptions.SetTextFormattingMode(canvas, TextFormattingMode.Ideal);
+        TextOptions.SetTextHintingMode(canvas, TextHintingMode.Fixed);
         RenderOptions.SetBitmapScalingMode(canvas, BitmapScalingMode.HighQuality);
+        canvas.UseLayoutRounding = true;
+        canvas.SnapsToDevicePixels = true;
 
         canvas.Measure(new Size(docWidth, docHeight));
         canvas.Arrange(new Rect(0, 0, docWidth, docHeight));

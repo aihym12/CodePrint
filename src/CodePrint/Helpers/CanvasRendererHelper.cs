@@ -71,8 +71,15 @@ public static class CanvasRendererHelper
                 Models.TextAlignment.Right => System.Windows.TextAlignment.Right,
                 Models.TextAlignment.Justify => System.Windows.TextAlignment.Justify,
                 _ => System.Windows.TextAlignment.Left
-            }
+            },
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
+
+        // Set high-quality text rendering for sharper print output
+        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);
+        TextOptions.SetTextHintingMode(tb, TextHintingMode.Fixed);
 
         // Apply line spacing via LineHeight
         if (element.LineSpacing > 0)
@@ -292,7 +299,7 @@ public static class CanvasRendererHelper
         var date = DateTime.Now.AddDays(element.DayOffset);
         var formatted = date.ToString(ConvertDateFormat(element.DateFormat));
 
-        return new TextBlock
+        var tb = new TextBlock
         {
             Text = formatted,
             FontFamily = new FontFamily(element.FontFamily),
@@ -300,8 +307,16 @@ public static class CanvasRendererHelper
             Foreground = BrushFromHex(element.ForegroundColor),
             Width = element.Width * MmToPx,
             Height = element.Height * MmToPx,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
+
+        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);
+        TextOptions.SetTextHintingMode(tb, TextHintingMode.Fixed);
+
+        return tb;
     }
 
     private static FrameworkElement RenderTable(TableElement element)
@@ -428,8 +443,14 @@ public static class CanvasRendererHelper
             Foreground = BrushFromHex(element.Color),
             Opacity = element.Opacity,
             RenderTransformOrigin = new Point(0.5, 0.5),
-            RenderTransform = new RotateTransform(element.Angle)
+            RenderTransform = new RotateTransform(element.Angle),
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
+
+        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);
+        TextOptions.SetTextHintingMode(tb, TextHintingMode.Fixed);
 
         return tb;
     }

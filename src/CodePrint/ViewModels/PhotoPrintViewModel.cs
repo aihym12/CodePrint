@@ -163,12 +163,15 @@ public partial class PhotoPrintViewModel : ObservableObject
     {
         var visual = new DrawingVisual();
 
+        // Set high-quality rendering hints for sharp print output
+        RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
+
         using (var dc = visual.RenderOpen())
         {
             // White background
             dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, pageWidth, pageHeight));
 
-            // Load the image
+            // Load the image at high DPI for sharp print output
             BitmapImage bitmap;
             try
             {
@@ -176,6 +179,7 @@ public partial class PhotoPrintViewModel : ObservableObject
                 bitmap.BeginInit();
                 bitmap.UriSource = new Uri(photo.FilePath, UriKind.Absolute);
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
                 bitmap.EndInit();
                 bitmap.Freeze();
             }

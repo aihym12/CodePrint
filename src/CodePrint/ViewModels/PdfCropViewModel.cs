@@ -433,6 +433,7 @@ public partial class PdfCropViewModel : ObservableObject
                                 Height = rect.Height,
                                 Stretch = Stretch.Uniform
                             };
+                            RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
                             FixedPage.SetLeft(imgCtrl, c * labelW + rect.X);
                             FixedPage.SetTop(imgCtrl, rect.Y);
                             fixedPage.Children.Add(imgCtrl);
@@ -504,9 +505,9 @@ public partial class PdfCropViewModel : ObservableObject
         return ImageDensity switch
         {
             DensityLevel.Light => 150,
-            DensityLevel.Medium => 300,
+            DensityLevel.Medium => 600,
             DensityLevel.Dark => 600,
-            _ => 300  // Auto — clear text for printing
+            _ => 600  // Auto — high quality for sharp text on thermal printers like QR-488
         };
     }
 
@@ -543,6 +544,7 @@ public partial class PdfCropViewModel : ObservableObject
                 Height = rect.Height,
                 Stretch = Stretch.Uniform
             };
+            RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
             FixedPage.SetLeft(imgCtrl, rect.X);
             FixedPage.SetTop(imgCtrl, rect.Y);
             page.Children.Add(imgCtrl);
