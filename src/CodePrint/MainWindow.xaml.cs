@@ -502,6 +502,94 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ElementXBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyElementX();
+    }
+
+    private void ElementXBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyElementX();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyElementX()
+    {
+        if (_isSyncingToolbar) return;
+        if (ViewModel.SelectedElement is { } el && double.TryParse(ElementXBox.Text, out var v))
+            el.X = v;
+    }
+
+    private void ElementYBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyElementY();
+    }
+
+    private void ElementYBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyElementY();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyElementY()
+    {
+        if (_isSyncingToolbar) return;
+        if (ViewModel.SelectedElement is { } el && double.TryParse(ElementYBox.Text, out var v))
+            el.Y = v;
+    }
+
+    private void ElementWBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyElementW();
+    }
+
+    private void ElementWBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyElementW();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyElementW()
+    {
+        if (_isSyncingToolbar) return;
+        if (ViewModel.SelectedElement is { } el && double.TryParse(ElementWBox.Text, out var v) && v > 0)
+            el.Width = v;
+    }
+
+    private void ElementHBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyElementH();
+    }
+
+    private void ElementHBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyElementH();
+            DesignCanvas_MoveFocus(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplyElementH()
+    {
+        if (_isSyncingToolbar) return;
+        if (ViewModel.SelectedElement is { } el && double.TryParse(ElementHBox.Text, out var v) && v > 0)
+            el.Height = v;
+    }
+
     /// <summary>Moves keyboard focus to the next control for better UX after applying a value.</summary>
     private static void DesignCanvas_MoveFocus(object sender)
     {

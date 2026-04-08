@@ -137,27 +137,31 @@
                         <Button Content="≡≡" Style="{StaticResource FormatButton}" ToolTip="两端对齐"/>
                         <Separator Style="{StaticResource ToolbarSeparator}"/>
                         <TextBlock Text="x:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                        <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox x:Name="ElementXBox" Width="50" VerticalContentAlignment="Center" FontSize="11"
+                                 LostFocus="ElementXBox_LostFocus" KeyDown="ElementXBox_KeyDown">
                             <TextBox.Text>
-                                <Binding Path="SelectedElement.X" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                                <Binding Path="SelectedElement.X" StringFormat="F1" UpdateSourceTrigger="LostFocus" FallbackValue=""/>
                             </TextBox.Text>
                         </TextBox>
                         <TextBlock Text="y:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                        <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox x:Name="ElementYBox" Width="50" VerticalContentAlignment="Center" FontSize="11"
+                                 LostFocus="ElementYBox_LostFocus" KeyDown="ElementYBox_KeyDown">
                             <TextBox.Text>
-                                <Binding Path="SelectedElement.Y" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                                <Binding Path="SelectedElement.Y" StringFormat="F1" UpdateSourceTrigger="LostFocus" FallbackValue=""/>
                             </TextBox.Text>
                         </TextBox>
                         <TextBlock Text="w:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                        <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox x:Name="ElementWBox" Width="50" VerticalContentAlignment="Center" FontSize="11"
+                                 LostFocus="ElementWBox_LostFocus" KeyDown="ElementWBox_KeyDown">
                             <TextBox.Text>
-                                <Binding Path="SelectedElement.Width" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                                <Binding Path="SelectedElement.Width" StringFormat="F1" UpdateSourceTrigger="LostFocus" FallbackValue=""/>
                             </TextBox.Text>
                         </TextBox>
                         <TextBlock Text="h:" VerticalAlignment="Center" Margin="4,0,2,0" FontSize="11"/>
-                        <TextBox Width="50" VerticalContentAlignment="Center" FontSize="11">
+                        <TextBox x:Name="ElementHBox" Width="50" VerticalContentAlignment="Center" FontSize="11"
+                                 LostFocus="ElementHBox_LostFocus" KeyDown="ElementHBox_KeyDown">
                             <TextBox.Text>
-                                <Binding Path="SelectedElement.Height" StringFormat="F1" UpdateSourceTrigger="PropertyChanged" FallbackValue=""/>
+                                <Binding Path="SelectedElement.Height" StringFormat="F1" UpdateSourceTrigger="LostFocus" FallbackValue=""/>
                             </TextBox.Text>
                         </TextBox>
                     </StackPanel>
