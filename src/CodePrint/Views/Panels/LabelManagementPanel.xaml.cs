@@ -31,23 +31,16 @@ public partial class LabelManagementPanel : UserControl
     /// <summary>双击标签名称，进入内联编辑模式。</summary>
     private void LabelName_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ClickCount == 2 && sender is TextBlock textBlock)
+        if (e.ClickCount == 2 && sender is TextBlock textBlock && textBlock.Parent is Grid grid)
         {
-            // 找到同一 Grid 内的 TextBox
-            if (textBlock.Parent is Grid grid)
+            var editBox = FindChildByTag<TextBox>(grid, "LabelNameEditor");
+            if (editBox != null)
             {
-                foreach (var child in grid.Children)
-                {
-                    if (child is TextBox editBox)
-                    {
-                        editBox.Text = textBlock.Text;
-                        textBlock.Visibility = Visibility.Collapsed;
-                        editBox.Visibility = Visibility.Visible;
-                        editBox.Focus();
-                        editBox.SelectAll();
-                        break;
-                    }
-                }
+                editBox.Text = textBlock.Text;
+                textBlock.Visibility = Visibility.Collapsed;
+                editBox.Visibility = Visibility.Visible;
+                editBox.Focus();
+                editBox.SelectAll();
             }
             e.Handled = true;
         }
@@ -88,15 +81,7 @@ public partial class LabelManagementPanel : UserControl
                 ViewModel.RenameLabelCommand.Execute((doc, newName));
             }
 
-            // 切换回显示模式
-            foreach (var child in grid.Children)
-            {
-                if (child is TextBlock tb && tb.FontWeight == FontWeights.SemiBold)
-                {
-                    tb.Visibility = Visibility.Visible;
-                    break;
-                }
-            }
+            RestoreDisplayMode(grid);
             editBox.Visibility = Visibility.Collapsed;
         }
     }
@@ -105,16 +90,26 @@ public partial class LabelManagementPanel : UserControl
     {
         if (editBox.Parent is Grid grid)
         {
-            foreach (var child in grid.Children)
-            {
-                if (child is TextBlock tb && tb.FontWeight == FontWeights.SemiBold)
-                {
-                    tb.Visibility = Visibility.Visible;
-                    break;
-                }
-            }
+            RestoreDisplayMode(grid);
             editBox.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private static void RestoreDisplayMode(Grid grid)
+    {
+        var displayBlock = FindChildByTag<TextBlock>(grid, "LabelNameDisplay");
+        if (displayBlock != null)
+            displayBlock.Visibility = Visibility.Visible;
+    }
+
+    private static T? FindChildByTag<T>(Grid grid, string tag) where T : FrameworkElement
+    {
+        foreach (var child in grid.Children)
+        {
+            if (child is T element && element.Tag is string t && t == tag)
+                return element;
+        }
+        return null;
     }
 
     /// <summary>"···"更多按钮点击，弹出上下文菜单。</summary>
