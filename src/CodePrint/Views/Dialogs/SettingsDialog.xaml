@@ -60,7 +60,7 @@
                 <!-- 默认打印方向 -->
                 <TextBlock Text="默认打印方向" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Content="纵向" IsChecked="{Binding DefaultOrientation, Converter={StaticResource BoolToVisibility}, ConverterParameter=Portrait}" Margin="0,0,16,0"
+                    <RadioButton Content="纵向" IsChecked="True" Margin="0,0,16,0"
                                  x:Name="PortraitRadio" Checked="Portrait_Checked"/>
                     <RadioButton Content="横向" x:Name="LandscapeRadio" Checked="Landscape_Checked"/>
                 </StackPanel>
