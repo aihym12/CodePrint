@@ -41,8 +41,13 @@
                             </ContextMenu>
                         </Canvas.ContextMenu>
 
-                        <TextBlock x:Name="PlaceholderText" Canvas.Left="10" Canvas.Top="10" Text="双击此处开始设计"
-                                   Foreground="#CCC" FontSize="14" IsHitTestVisible="False"/>
+                        <Grid Width="{Binding ActualWidth, ElementName=DesignCanvas}"
+                              Height="{Binding ActualHeight, ElementName=DesignCanvas}"
+                              IsHitTestVisible="False">
+                            <TextBlock x:Name="PlaceholderText" Text="双击此处开始设计"
+                                       Foreground="#CCC" FontSize="14"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Canvas>
                 </Border>
             </Grid>
