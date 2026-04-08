@@ -110,13 +110,33 @@ public partial class PrintViewModel : ObservableObject
                 : System.Printing.PageOrientation.Portrait;
             printDialog.PrintTicket.CopyCount = Settings.Copies;
 
+            // Get the printer's imageable-area origin so we can compensate for
+            // the offset that the WPF printing pipeline applies.  Without this
+            // compensation the content is shifted down/right by (OriginWidth,
+            // OriginHeight), which pushes the bottom/right off the physical page
+            // and leaves visible blank space.
+            double originX = 0, originY = 0;
+            try
+            {
+                var caps = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
+                if (caps.PageImageableArea != null)
+                {
+                    originX = caps.PageImageableArea.OriginWidth;
+                    originY = caps.PageImageableArea.OriginHeight;
+                }
+            }
+            catch
+            {
+                // If capabilities are unavailable, assume zero offset
+            }
+
             // Render label content to a high-DPI bitmap
             var renderBitmap = RenderLabelBitmap();
 
-            // Build a FixedDocument whose FixedPage places (0,0) at the physical
-            // page origin. Unlike PrintVisual (which maps content to the
-            // imageable-area origin, leaving blank space at the bottom/right),
-            // FixedPage fills the paper from edge to edge.
+            // Build a FixedDocument.  Position content at (-originX, -originY)
+            // so that after the printing pipeline adds the imageable-area offset,
+            // the net position is (0,0) on the physical paper – filling the page
+            // from edge to edge.
             var fixedPage = new FixedPage { Width = pageW, Height = pageH };
 
             for (int r = 0; r < rows; r++)
@@ -130,8 +150,8 @@ public partial class PrintViewModel : ObservableObject
                         Height = labelH,
                         Stretch = Stretch.Fill
                     };
-                    FixedPage.SetLeft(img, c * labelW);
-                    FixedPage.SetTop(img, r * labelH);
+                    FixedPage.SetLeft(img, c * labelW - originX);
+                    FixedPage.SetTop(img, r * labelH - originY);
                     fixedPage.Children.Add(img);
                 }
             }
