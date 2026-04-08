@@ -301,15 +301,9 @@ public partial class CanvasPanel : UserControl
 
     private void ScrollViewer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Click on gray/white area outside the canvas → deselect all elements
+        // Click on gray/white area outside the canvas → only commit inline editing,
+        // do NOT clear selection so that rubber-band-selected elements stay selected
         CommitInlineEditing();
-
-        if (ViewModel != null)
-        {
-            ViewModel.SelectedElement = null;
-            ViewModel.SelectedElements.Clear();
-            ClearSelectionHandles();
-        }
 
         e.Handled = true;
     }
