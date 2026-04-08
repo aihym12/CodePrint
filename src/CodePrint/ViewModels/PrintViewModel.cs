@@ -161,7 +161,7 @@ public partial class PrintViewModel : ObservableObject
         canvas.Arrange(new Rect(0, 0, docWidth, docHeight));
         canvas.UpdateLayout();
 
-        // Render at high DPI for sharp print output (e.g. 300 DPI instead of 96)
+        // Render at high DPI for sharp print output (600 DPI instead of 96)
         double dpiScale = PrintDpi / 96.0;
         int bitmapWidth = (int)Math.Max(1, docWidth * dpiScale);
         int bitmapHeight = (int)Math.Max(1, docHeight * dpiScale);
