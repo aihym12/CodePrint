@@ -41,6 +41,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         SetupHomePage();
         _designerViewModel.RequestShowPrintDialog += () => Print_Click(this, new RoutedEventArgs());
+        _designerViewModel.RequestImportImageAsText += OnRequestImportImageAsText;
         _designerViewModel.PropertyChanged += DesignerViewModel_PropertyChanged;
     }
 
@@ -206,6 +207,23 @@ public partial class MainWindow : Window
         var dialog = new PrintSettingsDialog { Owner = this };
         dialog.SetDocument(ViewModel.CurrentDocument);
         dialog.ShowDialog();
+    }
+
+    private async void OnRequestImportImageAsText()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp;*.tiff;*.tif|所有文件|*.*",
+            Title = "选择要识别文字的图片"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            await ViewModel.ImportImageAsTextAsync(
+                dialog.FileName,
+                ViewModel.CurrentDocument.WidthMm,
+                ViewModel.CurrentDocument.HeightMm);
+        }
     }
 
     private void SaveAs_Click(object sender, RoutedEventArgs e)
