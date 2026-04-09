@@ -577,9 +577,9 @@ public partial class PdfCropViewModel : ObservableObject
     {
         return ImageDensity switch
         {
-            DensityLevel.Light => 150,
-            DensityLevel.Medium => 300,
-            DensityLevel.Dark => 600,
+            DensityLevel.Light => 300,
+            DensityLevel.Medium => 600,
+            DensityLevel.Dark => 1200,
             DensityLevel.Custom => Math.Max(72, Math.Min(CustomDpi, 1200)),  // Print DPI clamped to 72~1200
             _ => GetAutoPrintDpi()  // Auto — detect from printer
         };
@@ -607,7 +607,7 @@ public partial class PdfCropViewModel : ObservableObject
         {
             // Printer not available or doesn't report resolution; fall back to default
         }
-        return 300; // Safe default for most thermal printers
+        return 600; // Safe default for most thermal printers
     }
 
     private async Task RenderCurrentPageAsync()
