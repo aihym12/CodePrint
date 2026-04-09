@@ -96,6 +96,12 @@ public partial class MainWindow : Window
         _labelManagementViewModel.RequestEditLabel += OnEditLabel;
         _labelManagementViewModel.RequestPrintLabel -= OnPrintLabel;
         _labelManagementViewModel.RequestPrintLabel += OnPrintLabel;
+        _labelManagementViewModel.RequestNewLabel -= OnRequestNewLabel;
+        _labelManagementViewModel.RequestNewLabel += OnRequestNewLabel;
+        _labelManagementViewModel.RequestOpenSettings -= OnRequestOpenSettings;
+        _labelManagementViewModel.RequestOpenSettings += OnRequestOpenSettings;
+        _labelManagementViewModel.RequestOpenTemplateLibrary -= OnRequestOpenTemplateLibrary;
+        _labelManagementViewModel.RequestOpenTemplateLibrary += OnRequestOpenTemplateLibrary;
         _labelManagementViewModel.LoadLabels();
         ShowView("LabelManagement");
     }
@@ -115,6 +121,26 @@ public partial class MainWindow : Window
         var dialog = new PrintSettingsDialog { Owner = this };
         dialog.SetDocument(document);
         dialog.ShowDialog();
+    }
+
+    private void OnRequestNewLabel()
+    {
+        var dialog = new NewLabelDialog { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            NavigateToDesigner(dialog.CreatedDocument);
+        }
+    }
+
+    private void OnRequestOpenSettings()
+    {
+        var dialog = new SettingsDialog { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private void OnRequestOpenTemplateLibrary()
+    {
+        // Tab switching is handled by the ViewModel's OpenTemplateLibrary command
     }
 
     private void ShowView(string view)

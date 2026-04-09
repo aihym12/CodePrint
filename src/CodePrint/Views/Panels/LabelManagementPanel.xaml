@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:CodePrint.ViewModels"
+             xmlns:panels="clr-namespace:CodePrint.Views.Panels"
              Background="White">
     <UserControl.DataContext>
         <vm:LabelManagementViewModel/>
@@ -26,9 +27,12 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
                     <Image Source="/app.ico" Width="20" Height="20" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="小茗标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,24,0" VerticalAlignment="Center"/>
-                    <Button Content="新建标签" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"/>
-                    <Button Content="模板选择" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"/>
-                    <Button Content="设置" Style="{StaticResource TitleBarButton}" FontSize="13"/>
+                    <Button Content="新建标签" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"
+                            Command="{Binding NewLabelCommand}"/>
+                    <Button Content="模板选择" Style="{StaticResource TitleBarButton}" FontSize="13" FontWeight="SemiBold"
+                            Command="{Binding OpenTemplateLibraryCommand}"/>
+                    <Button Content="设置" Style="{StaticResource TitleBarButton}" FontSize="13"
+                            Command="{Binding OpenSettingsCommand}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
@@ -46,25 +50,57 @@
             <StackPanel>
                 <!-- 标签页切换: 我的 / 模板库 -->
                 <StackPanel Orientation="Horizontal" Margin="24,12,24,0">
-                    <TextBlock Text="我的" FontSize="14" FontWeight="SemiBold" Foreground="#333" Cursor="Hand"
-                               Padding="0,0,0,8" Margin="0,0,24,0">
+                    <TextBlock Text="我的" FontSize="14" FontWeight="SemiBold" Cursor="Hand"
+                               Padding="0,0,0,8" Margin="0,0,24,0"
+                               MouseLeftButtonDown="MyTab_Click">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="TextDecorations">
-                                    <Setter.Value>
-                                        <TextDecorationCollection>
-                                            <TextDecoration Location="Underline" PenOffset="6">
-                                                <TextDecoration.Pen>
-                                                    <Pen Brush="{StaticResource PrimaryBrush}" Thickness="2"/>
-                                                </TextDecoration.Pen>
-                                            </TextDecoration>
-                                        </TextDecorationCollection>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter Property="Foreground" Value="#999"/>
+                                <Setter Property="TextDecorations" Value="{x:Null}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMyTabActive}" Value="True">
+                                        <Setter Property="Foreground" Value="#333"/>
+                                        <Setter Property="TextDecorations">
+                                            <Setter.Value>
+                                                <TextDecorationCollection>
+                                                    <TextDecoration Location="Underline" PenOffset="6">
+                                                        <TextDecoration.Pen>
+                                                            <Pen Brush="{StaticResource PrimaryBrush}" Thickness="2"/>
+                                                        </TextDecoration.Pen>
+                                                    </TextDecoration>
+                                                </TextDecorationCollection>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Text="模板库" FontSize="14" Foreground="#999" Cursor="Hand" Padding="0,0,0,8"/>
+                    <TextBlock Text="模板库" FontSize="14" Cursor="Hand" Padding="0,0,0,8"
+                               MouseLeftButtonDown="TemplateLibraryTab_Click">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#999"/>
+                                <Setter Property="TextDecorations" Value="{x:Null}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMyTabActive}" Value="False">
+                                        <Setter Property="Foreground" Value="#333"/>
+                                        <Setter Property="TextDecorations">
+                                            <Setter.Value>
+                                                <TextDecorationCollection>
+                                                    <TextDecoration Location="Underline" PenOffset="6">
+                                                        <TextDecoration.Pen>
+                                                            <Pen Brush="{StaticResource PrimaryBrush}" Thickness="2"/>
+                                                        </TextDecoration.Pen>
+                                                    </TextDecoration>
+                                                </TextDecorationCollection>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
 
                 <!-- 搜索栏 + 操作按钮 -->
@@ -122,7 +158,14 @@
 
                     <!-- 排序 -->
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,8,0">
-                        <TextBlock Text="↕ 排序" FontSize="12" VerticalAlignment="Center" Foreground="#666" Margin="0,0,8,0"/>
+                        <Button FontSize="12" Padding="6,4" Background="White" BorderBrush="#E0E0E0"
+                                BorderThickness="1" Cursor="Hand" Foreground="#666"
+                                Click="SortButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="↕ 排序" VerticalAlignment="Center"/>
+                                <TextBlock Text=" ▾" VerticalAlignment="Center" FontSize="10"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!-- 多选 -->
@@ -148,188 +191,205 @@
 
         <!-- 主内容区 -->
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <!-- "我的" tab content -->
+            <Grid Visibility="{Binding IsMyTabActive, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- 左侧文件夹列表 -->
-            <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8">
-                    <ItemsControl ItemsSource="{Binding Folders}">
+                <!-- 左侧文件夹列表 -->
+                <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8">
+                        <ItemsControl ItemsSource="{Binding Folders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Margin="0" Padding="16,10" FontSize="13"
+                                            HorizontalContentAlignment="Left" Cursor="Hand"
+                                            Command="{Binding DataContext.SelectFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="Foreground" Value="#666"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                        <TextBlock Text="{Binding Name}" FontSize="13"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- 右侧标签卡片网格 -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding FilteredLabels}" Margin="16,12">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Margin="0" Padding="16,10" FontSize="13"
-                                        HorizontalContentAlignment="Left" Cursor="Hand"
-                                        Command="{Binding DataContext.SelectFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Background" Value="Transparent"/>
-                                            <Setter Property="BorderThickness" Value="0"/>
-                                            <Setter Property="Foreground" Value="#666"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter Property="Background" Value="#FFF3E0"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </Button.Style>
-                                    <TextBlock Text="{Binding Name}" FontSize="13"/>
-                                </Button>
+                                <Border Width="200" Margin="8" BorderBrush="#E0E0E0" BorderThickness="1"
+                                        CornerRadius="4" Background="White" Effect="{StaticResource CardShadow}"
+                                        Cursor="Hand">
+                                    <StackPanel>
+                                        <!-- 标签缩略图区域 (双击编辑) -->
+                                        <Border Height="160" Background="#F8F8F8" CornerRadius="4,4,0,0"
+                                                MouseLeftButtonDown="LabelCard_MouseDown">
+                                            <Border.Tag>
+                                                <Binding Path="Id"/>
+                                            </Border.Tag>
+                                            <Grid>
+                                                <!-- 标签内容缩略图 (有元素时显示) -->
+                                                <Viewbox Stretch="Uniform" Margin="8">
+                                                    <Image Source="{Binding Converter={StaticResource LabelThumbnail}}"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Viewbox>
+                                                <!-- 空标签占位符 (无元素时显示) -->
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Elements.Count}" Value="0">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
+                                                    <TextBlock Text="🏷" FontSize="40" HorizontalAlignment="Center"
+                                                               Foreground="#CCC"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#999"
+                                                               HorizontalAlignment="Center" Margin="0,8,0,0"
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- 标签信息 -->
+                                        <Grid Margin="10,8,10,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- 显示模式：双击可编辑名称 -->
+                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" Foreground="#333"
+                                                       VerticalAlignment="Center" Tag="LabelNameDisplay"
+                                                       MouseLeftButtonDown="LabelName_MouseDown"/>
+                                            <!-- 编辑模式：输入框 -->
+                                            <TextBox FontSize="12" VerticalAlignment="Center"
+                                                     Visibility="Collapsed" Padding="0" Margin="0" Tag="LabelNameEditor"
+                                                     LostFocus="LabelNameEdit_LostFocus"
+                                                     KeyDown="LabelNameEdit_KeyDown"/>
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                                                       FontSize="11" Foreground="#999">
+                                                <Run Text="{Binding WidthMm, StringFormat={}{0:F0}}"/>
+                                                <Run Text="*"/>
+                                                <Run Text="{Binding HeightMm, StringFormat={}{0:F0}}"/>
+                                            </TextBlock>
+                                        </Grid>
+
+                                        <!-- 操作按钮行 -->
+                                        <Grid Margin="6,2,6,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Button Grid.Column="0" Cursor="Hand" Padding="4,4"
+                                                    Background="Transparent" BorderThickness="0"
+                                                    Command="{Binding DataContext.EditLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <StackPanel>
+                                                    <TextBlock Text="✏️" FontSize="16" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="编辑" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Grid.Column="1" Cursor="Hand" Padding="4,4"
+                                                    Background="Transparent" BorderThickness="0"
+                                                    Command="{Binding DataContext.PrintLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <StackPanel>
+                                                    <TextBlock Text="🖨️" FontSize="16" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="打印" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Grid.Column="2" Cursor="Hand" Padding="4,4"
+                                                    Background="Transparent" BorderThickness="0"
+                                                    Command="{Binding DataContext.DeleteLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <StackPanel>
+                                                    <TextBlock Text="🗑️" FontSize="16" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="删除" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Grid.Column="3" Content="···" Cursor="Hand" Padding="8,4"
+                                                    Background="Transparent" BorderThickness="0" FontSize="14" Foreground="#666"
+                                                    VerticalAlignment="Center" Click="MoreButton_Click"
+                                                    Tag="{Binding}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-            </Border>
 
-            <!-- 右侧标签卡片网格 -->
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding FilteredLabels}" Margin="16,12">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Width="200" Margin="8" BorderBrush="#E0E0E0" BorderThickness="1"
-                                    CornerRadius="4" Background="White" Effect="{StaticResource CardShadow}"
-                                    Cursor="Hand">
-                                <StackPanel>
-                                    <!-- 标签缩略图区域 (双击编辑) -->
-                                    <Border Height="160" Background="#F8F8F8" CornerRadius="4,4,0,0"
-                                            MouseLeftButtonDown="LabelCard_MouseDown">
-                                        <Border.Tag>
-                                            <Binding Path="Id"/>
-                                        </Border.Tag>
-                                        <Grid>
-                                            <!-- 标签内容缩略图 (有元素时显示) -->
-                                            <Viewbox Stretch="Uniform" Margin="8">
-                                                <Image Source="{Binding Converter={StaticResource LabelThumbnail}}"
-                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            </Viewbox>
-                                            <!-- 空标签占位符 (无元素时显示) -->
-                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                <StackPanel.Style>
-                                                    <Style TargetType="StackPanel">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Elements.Count}" Value="0">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </StackPanel.Style>
-                                                <TextBlock Text="🏷" FontSize="40" HorizontalAlignment="Center"
-                                                           Foreground="#CCC"/>
-                                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#999"
-                                                           HorizontalAlignment="Center" Margin="0,8,0,0"
-                                                           TextTrimming="CharacterEllipsis" MaxWidth="180"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
+                <!-- 空状态提示 -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FilteredLabels.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="📋" FontSize="48" HorizontalAlignment="Center" Foreground="#CCC"/>
+                    <TextBlock Text="暂无标签" FontSize="16" Foreground="#AAA" HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                    <TextBlock Text="点击「新建标签」开始创建" FontSize="12" Foreground="#CCC" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
 
-                                    <!-- 标签信息 -->
-                                    <Grid Margin="10,8,10,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <!-- 显示模式：双击可编辑名称 -->
-                                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis" Foreground="#333"
-                                                   VerticalAlignment="Center" Tag="LabelNameDisplay"
-                                                   MouseLeftButtonDown="LabelName_MouseDown"/>
-                                        <!-- 编辑模式：输入框 -->
-                                        <TextBox FontSize="12" VerticalAlignment="Center"
-                                                 Visibility="Collapsed" Padding="0" Margin="0" Tag="LabelNameEditor"
-                                                 LostFocus="LabelNameEdit_LostFocus"
-                                                 KeyDown="LabelNameEdit_KeyDown"/>
-                                        <TextBlock Grid.Column="1" VerticalAlignment="Center"
-                                                   FontSize="11" Foreground="#999">
-                                            <Run Text="{Binding WidthMm, StringFormat={}{0:F0}}"/>
-                                            <Run Text="*"/>
-                                            <Run Text="{Binding HeightMm, StringFormat={}{0:F0}}"/>
-                                        </TextBlock>
-                                    </Grid>
-
-                                    <!-- 操作按钮行 -->
-                                    <Grid Margin="6,2,6,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <Button Grid.Column="0" Cursor="Hand" Padding="4,4"
-                                                Background="Transparent" BorderThickness="0"
-                                                Command="{Binding DataContext.EditLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}">
-                                            <StackPanel>
-                                                <TextBlock Text="✏️" FontSize="16" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="编辑" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
-                                            </StackPanel>
-                                        </Button>
-
-                                        <Button Grid.Column="1" Cursor="Hand" Padding="4,4"
-                                                Background="Transparent" BorderThickness="0"
-                                                Command="{Binding DataContext.PrintLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}">
-                                            <StackPanel>
-                                                <TextBlock Text="🖨️" FontSize="16" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="打印" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
-                                            </StackPanel>
-                                        </Button>
-
-                                        <Button Grid.Column="2" Cursor="Hand" Padding="4,4"
-                                                Background="Transparent" BorderThickness="0"
-                                                Command="{Binding DataContext.DeleteLabelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}">
-                                            <StackPanel>
-                                                <TextBlock Text="🗑️" FontSize="16" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="删除" FontSize="10" HorizontalAlignment="Center" Foreground="#666"/>
-                                            </StackPanel>
-                                        </Button>
-
-                                        <Button Grid.Column="3" Content="···" Cursor="Hand" Padding="8,4"
-                                                Background="Transparent" BorderThickness="0" FontSize="14" Foreground="#666"
-                                                VerticalAlignment="Center" Click="MoreButton_Click"
-                                                Tag="{Binding}"/>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-
-            <!-- 空状态提示 -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
+            <!-- "模板库" tab content -->
+            <panels:TemplateLibraryPanel x:Name="TemplateLibraryContent">
+                <panels:TemplateLibraryPanel.Style>
+                    <Style TargetType="UserControl">
                         <Setter Property="Visibility" Value="Collapsed"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding FilteredLabels.Count}" Value="0">
+                            <DataTrigger Binding="{Binding IsMyTabActive}" Value="False">
                                 <Setter Property="Visibility" Value="Visible"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </StackPanel.Style>
-                <TextBlock Text="📋" FontSize="48" HorizontalAlignment="Center" Foreground="#CCC"/>
-                <TextBlock Text="暂无标签" FontSize="16" Foreground="#AAA" HorizontalAlignment="Center" Margin="0,12,0,4"/>
-                <TextBlock Text="点击「新建标签」开始创建" FontSize="12" Foreground="#CCC" HorizontalAlignment="Center"/>
-            </StackPanel>
+                </panels:TemplateLibraryPanel.Style>
+            </panels:TemplateLibraryPanel>
         </Grid>
     </Grid>
 </UserControl>

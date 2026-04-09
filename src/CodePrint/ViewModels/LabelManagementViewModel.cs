@@ -46,6 +46,9 @@ public partial class LabelManagementViewModel : ObservableObject
 
     public string CapacityText => $"模板容量 {TemplateCount}/{TemplateLimit}";
 
+    [ObservableProperty]
+    private bool _isMyTabActive = true;
+
     /// <summary>用户想编辑某个标签时触发。</summary>
     public event Action<LabelDocument>? RequestEditLabel;
 
@@ -54,6 +57,15 @@ public partial class LabelManagementViewModel : ObservableObject
 
     /// <summary>用户想返回主页时触发。</summary>
     public event Action? NavigateBack;
+
+    /// <summary>用户想新建空白标签时触发（需要打开对话框）。</summary>
+    public event Action? RequestNewLabel;
+
+    /// <summary>用户想打开设置对话框时触发。</summary>
+    public event Action? RequestOpenSettings;
+
+    /// <summary>用户想打开模板选择页时触发。</summary>
+    public event Action? RequestOpenTemplateLibrary;
 
     partial void OnTemplateCountChanged(int value) => OnPropertyChanged(nameof(CapacityText));
 
@@ -228,5 +240,36 @@ public partial class LabelManagementViewModel : ObservableObject
     private void GoBack()
     {
         NavigateBack?.Invoke();
+    }
+
+    [RelayCommand]
+    private void NewLabel()
+    {
+        RequestNewLabel?.Invoke();
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        RequestOpenSettings?.Invoke();
+    }
+
+    [RelayCommand]
+    private void OpenTemplateLibrary()
+    {
+        IsMyTabActive = false;
+        RequestOpenTemplateLibrary?.Invoke();
+    }
+
+    [RelayCommand]
+    private void SwitchToMyTab()
+    {
+        IsMyTabActive = true;
+    }
+
+    [RelayCommand]
+    private void SwitchToTemplateLibraryTab()
+    {
+        IsMyTabActive = false;
     }
 }
