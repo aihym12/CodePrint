@@ -235,7 +235,7 @@ public partial class PdfCropViewModel : ObservableObject
 
     /// <summary>边距提示文本。</summary>
     [ObservableProperty]
-    private string _marginHintText = "目前空出了 5 像素";
+    private string _marginHintText = $"目前空出了 5 像素";  // Matches default _printMarginPx; overwritten in LoadSettings()
 
     partial void OnPrintMarginPxChanged(double value)
     {

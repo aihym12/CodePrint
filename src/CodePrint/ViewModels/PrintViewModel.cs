@@ -34,7 +34,19 @@ public partial class PrintViewModel : ObservableObject
     private string _statusText = string.Empty;
 
     /// <summary>边距提示文本。</summary>
-    public string MarginHintText => $"目前空出了 {Settings.PrintMarginPx} 像素";
+    [ObservableProperty]
+    private string _marginHintText = string.Empty;
+
+    partial void OnSettingsChanged(PrintSettings value)
+    {
+        UpdateMarginHint();
+    }
+
+    /// <summary>Updates the margin hint text from the current settings.</summary>
+    public void UpdateMarginHint()
+    {
+        MarginHintText = $"目前空出了 {Settings.PrintMarginPx} 像素";
+    }
 
     /// <summary>Raised when the dialog should close with a success result.</summary>
     public event Action<bool>? RequestClose;

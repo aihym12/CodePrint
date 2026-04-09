@@ -26,6 +26,7 @@ public partial class PrintSettingsDialog : Window
     {
         ViewModel.RequestClose += OnRequestClose;
         ViewModel.RefreshPrintersCommand.Execute(null);
+        ViewModel.UpdateMarginHint();
 
         // Restore orientation radio buttons from settings
         if (ViewModel.Settings.Orientation == PrintOrientation.Landscape)
@@ -114,6 +115,11 @@ public partial class PrintSettingsDialog : Window
     {
         DialogResult = result;
         Close();
+    }
+
+    private void Margin_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        ViewModel.UpdateMarginHint();
     }
 
     protected override void OnClosed(EventArgs e)
