@@ -304,6 +304,9 @@ public partial class MainWindow : Window
     /// </summary>
     private static void ScaleElement(LabelElement element, double scaleX, double scaleY)
     {
+        const double MinFontSize = 1.0;
+        const double MinThickness = 0.1;
+
         // 缩放位置和大小
         element.X *= scaleX;
         element.Y *= scaleY;
@@ -311,21 +314,21 @@ public partial class MainWindow : Window
         element.Height *= scaleY;
 
         // 统一缩放因子，用于字号等不区分方向的属性
-        double uniformScale = Math.Sqrt(scaleX * scaleY);
+        double uniformScale = Math.Min(scaleX, scaleY);
 
         switch (element)
         {
             case TextElement text:
-                text.FontSize = Math.Max(1, text.FontSize * uniformScale);
+                text.FontSize = Math.Max(MinFontSize, text.FontSize * uniformScale);
                 text.LetterSpacing *= uniformScale;
                 break;
 
             case DateElement date:
-                date.FontSize = Math.Max(1, date.FontSize * uniformScale);
+                date.FontSize = Math.Max(MinFontSize, date.FontSize * uniformScale);
                 break;
 
             case WatermarkElement watermark:
-                watermark.FontSize = Math.Max(1, watermark.FontSize * uniformScale);
+                watermark.FontSize = Math.Max(MinFontSize, watermark.FontSize * uniformScale);
                 watermark.Spacing *= uniformScale;
                 break;
 
@@ -334,18 +337,18 @@ public partial class MainWindow : Window
                 break;
 
             case LineElement line:
-                line.StrokeThickness = Math.Max(0.1, line.StrokeThickness * uniformScale);
+                line.StrokeThickness = Math.Max(MinThickness, line.StrokeThickness * uniformScale);
                 line.X2 *= scaleX;
                 line.Y2 *= scaleY;
                 break;
 
             case RectangleElement rect:
-                rect.BorderThickness = Math.Max(0.1, rect.BorderThickness * uniformScale);
+                rect.BorderThickness = Math.Max(MinThickness, rect.BorderThickness * uniformScale);
                 rect.CornerRadius *= uniformScale;
                 break;
 
             case TableElement table:
-                table.BorderThickness = Math.Max(0.1, table.BorderThickness * uniformScale);
+                table.BorderThickness = Math.Max(MinThickness, table.BorderThickness * uniformScale);
                 break;
 
             case ImageElement image:
