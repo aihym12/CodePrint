@@ -129,7 +129,7 @@
             </Border>
 
             <!-- Right Panel: Preview Area (Step 1) -->
-            <Grid Grid.Column="1" Background="#F0F0F0">
+            <Grid Grid.Column="1" Background="#E0E0E0">
                 <!-- Empty state -->
                 <Border Background="White" CornerRadius="8" Margin="40" Effect="{StaticResource CardShadow}"
                         Visibility="{Binding IsFileLoaded, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
@@ -142,28 +142,30 @@
                 </Border>
 
                 <!-- Loaded state with rendered preview -->
-                <Border Background="White" CornerRadius="8" Margin="40" Effect="{StaticResource CardShadow}"
-                        Visibility="{Binding IsFileLoaded, Converter={StaticResource BoolToVisibility}}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
+                <Grid Visibility="{Binding IsFileLoaded, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                        <Image Source="{Binding PreviewImage}" Stretch="Uniform" Margin="20"
-                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="20">
+                        <Border Background="White" Effect="{StaticResource CardShadow}"
+                                BorderBrush="#C0C0C0" BorderThickness="1">
+                            <Image Source="{Binding PreviewImage}" Stretch="None"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                    </Viewbox>
 
-                        <!-- Page navigation -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
-                            <Button Content="◀ 上一页" Style="{StaticResource ToolbarButton}" Padding="8,4"
-                                    Command="{Binding PreviousPageCommand}"/>
-                            <TextBlock Text="{Binding PageInfoText}" VerticalAlignment="Center" Margin="12,0"
-                                       FontSize="12" Foreground="#666"/>
-                            <Button Content="下一页 ▶" Style="{StaticResource ToolbarButton}" Padding="8,4"
-                                    Command="{Binding NextPageCommand}"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                    <!-- Page navigation -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <Button Content="◀ 上一页" Style="{StaticResource ToolbarButton}" Padding="8,4"
+                                Command="{Binding PreviousPageCommand}"/>
+                        <TextBlock Text="{Binding PageInfoText}" VerticalAlignment="Center" Margin="12,0"
+                                   FontSize="12" Foreground="#666"/>
+                        <Button Content="下一页 ▶" Style="{StaticResource ToolbarButton}" Padding="8,4"
+                                Command="{Binding NextPageCommand}"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Grid>
 
@@ -303,17 +305,20 @@
             </Border>
 
             <!-- Right Panel: Preview (Step 2) -->
-            <Grid Grid.Column="1" Background="#F0F0F0">
+            <Grid Grid.Column="1" Background="#E0E0E0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- PDF preview image -->
-                <Border Background="White" CornerRadius="8" Margin="30" Effect="{StaticResource CardShadow}">
-                    <Image Source="{Binding PreviewImage}" Stretch="Uniform" Margin="16"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                </Border>
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="30">
+                    <Border Background="White" Effect="{StaticResource CardShadow}"
+                            BorderBrush="#C0C0C0" BorderThickness="1">
+                        <Image Source="{Binding PreviewImage}" Stretch="None"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+                </Viewbox>
 
                 <!-- Page navigation bar -->
                 <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
