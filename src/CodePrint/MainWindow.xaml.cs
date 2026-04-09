@@ -110,7 +110,6 @@ public partial class MainWindow : Window
         };
         _spinnerStoryboard = new Storyboard();
         _spinnerStoryboard.Children.Add(animation);
-        Storyboard.SetTarget(animation, OcrLoadingOverlay);
         Storyboard.SetTargetName(animation, "SpinnerRotation");
         Storyboard.SetTargetProperty(animation, new PropertyPath(System.Windows.Media.RotateTransform.AngleProperty));
         _spinnerStoryboard.Begin(this);

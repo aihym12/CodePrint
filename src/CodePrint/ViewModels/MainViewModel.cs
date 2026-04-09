@@ -747,7 +747,12 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
+            // OCR bounding boxes include extra padding (ascenders, descenders, line gap).
+            // Apply a correction factor so the estimated font size matches the visual size.
             const double FontSizeCorrectionFactor = 0.78;
+            const double MinFontSizePoints = 6.0;
+            // Add 5% margin to element width so text is not clipped at the edges.
+            const double WidthMarginFactor = 1.05;
 
             for (int i = 0; i < lines.Count; i++)
             {
@@ -759,9 +764,9 @@ public partial class MainViewModel : ObservableObject
 
                 double charHeightMm = charHeightPx * scale;
                 double fontSizePt = charHeightMm / MmPerPoint * FontSizeCorrectionFactor;
-                fontSizePt = Math.Max(6, Math.Round(fontSizePt, 1));
+                fontSizePt = Math.Max(MinFontSizePoints, Math.Round(fontSizePt, 1));
 
-                double elementWidthMm = line.Width * scale * 1.05;
+                double elementWidthMm = line.Width * scale * WidthMarginFactor;
                 double lineHeightMm = line.Height * scale;
 
                 var textElement = new TextElement
