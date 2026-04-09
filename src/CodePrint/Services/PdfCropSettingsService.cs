@@ -77,4 +77,7 @@ public class PdfCropSettings
 
     // Last used printer
     public string? LastPrinterName { get; set; }
+
+    /// <summary>打印边距（像素），上下左右各缩进该值。默认 5 像素。</summary>
+    public double PrintMarginPx { get; set; } = 5;
 }

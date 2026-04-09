@@ -85,6 +85,13 @@
                     <TextBlock Text="DPI" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#666"/>
                 </StackPanel>
                 <TextBlock Text="提示：0=使用全局默认，203=热敏打印机，300=普通打印，600=高质量" FontSize="11" Foreground="#999" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+                <TextBlock Text="打印边距（像素）" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Text="{Binding Settings.PrintMarginPx, UpdateSourceTrigger=PropertyChanged}" Padding="4" Width="80" HorizontalAlignment="Left"/>
+                    <TextBlock Text="px" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#666"/>
+                </StackPanel>
+                <TextBlock Text="{Binding MarginHintText}" FontSize="11" Foreground="#999" Margin="0,4,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </ScrollViewer>
 

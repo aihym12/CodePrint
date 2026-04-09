@@ -283,6 +283,15 @@
                         <TextBlock Text="{Binding DensityHintText}" FontSize="11" Foreground="#888"
                                    Margin="0,4,0,0"/>
 
+                        <!-- Print margin -->
+                        <TextBlock Text="打印边距（像素）" FontSize="13" Margin="0,20,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Text="{Binding PrintMarginPx, UpdateSourceTrigger=PropertyChanged}" Width="80" FontSize="12" Padding="4,2"/>
+                            <TextBlock Text=" px" VerticalAlignment="Center" FontSize="12" Foreground="#999"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding MarginHintText}" FontSize="11" Foreground="#888"
+                                   Margin="0,4,0,0"/>
+
                         <!-- Spacer to push buttons to bottom -->
                         <Grid Height="40"/>
 

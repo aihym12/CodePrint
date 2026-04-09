@@ -227,6 +227,22 @@ public partial class PdfCropViewModel : ObservableObject
 
     public string? LastPrinterName { get; set; }
 
+    // ── Print margin ──
+
+    /// <summary>打印边距（像素），上下左右各缩进该值。</summary>
+    [ObservableProperty]
+    private double _printMarginPx = 5;
+
+    /// <summary>边距提示文本。</summary>
+    [ObservableProperty]
+    private string _marginHintText = "目前空出了 5 像素";
+
+    partial void OnPrintMarginPxChanged(double value)
+    {
+        MarginHintText = $"目前空出了 {value} 像素";
+        SaveSettings();
+    }
+
     // ── Status ──
 
     [ObservableProperty]
@@ -249,6 +265,8 @@ public partial class PdfCropViewModel : ObservableObject
         _customDpi = s.CustomDpi;
         _processingMode = Enum.TryParse<PdfProcessingMode>(s.ProcessingMode, out var m) ? m : PdfProcessingMode.PageCrop;
         LastPrinterName = s.LastPrinterName;
+        _printMarginPx = s.PrintMarginPx;
+        _marginHintText = $"目前空出了 {_printMarginPx} 像素";
     }
 
     private void SaveSettings()
@@ -267,7 +285,8 @@ public partial class PdfCropViewModel : ObservableObject
             ImageDensity = ImageDensity.ToString(),
             CustomDpi = CustomDpi,
             ProcessingMode = ProcessingMode.ToString(),
-            LastPrinterName = LastPrinterName
+            LastPrinterName = LastPrinterName,
+            PrintMarginPx = PrintMarginPx
         });
     }
 
@@ -483,15 +502,15 @@ public partial class PdfCropViewModel : ObservableObject
                 for (int i = startIdx; i <= endIdx; i++)
                     pageIndices.Add(i);
 
-                // Each column gets exactly one label width; total page width = labelW * columns
-                var perColumnW = labelW;
+                // Apply user-configured margin on all sides
+                double margin = Math.Max(0, PrintMarginPx);
 
                 // Distribute the printable width evenly across columns.
                 // The printer adds originX as a left margin, so the total
-                // available width on paper is (pageW - originX).
-                double totalAvailW = Math.Max(1, pageW - originX);
+                // available width on paper is (pageW - originX - 2*margin).
+                double totalAvailW = Math.Max(1, pageW - originX - 2 * margin);
                 double availColW = totalAvailW / columns;
-                double availH = Math.Max(1, pageH - originY);
+                double availH = Math.Max(1, pageH - originY - 2 * margin);
 
                 for (int g = 0; g < pageIndices.Count; g += columns)
                 {
@@ -513,8 +532,8 @@ public partial class PdfCropViewModel : ObservableObject
                                 SnapsToDevicePixels = true
                             };
                             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-                            FixedPage.SetLeft(imgCtrl, c * availColW);
-                            FixedPage.SetTop(imgCtrl, 0);
+                            FixedPage.SetLeft(imgCtrl, margin + c * availColW);
+                            FixedPage.SetTop(imgCtrl, margin);
                             fixedPage.Children.Add(imgCtrl);
                         }
                     }
@@ -693,14 +712,11 @@ public partial class PdfCropViewModel : ObservableObject
 
         if (img != null)
         {
-            // Fit content within the printer's imageable (printable) area instead
-            // of shifting it to a negative offset.  The WPF print pipeline adds
-            // (originX, originY) automatically, so the image placed at (0,0) will
-            // appear at the imageable-area origin on paper.  By sizing the image
-            // to the imageable area and using Stretch.Uniform the content is
-            // scaled to fill the printable region without any edge being clipped.
-            double availW = Math.Max(1, pageW - originX);
-            double availH = Math.Max(1, pageH - originY);
+            // Fit content within the printer's imageable (printable) area,
+            // then apply the user-configured margin on all four sides.
+            double margin = Math.Max(0, PrintMarginPx);
+            double availW = Math.Max(1, pageW - originX - 2 * margin);
+            double availH = Math.Max(1, pageH - originY - 2 * margin);
             var imgCtrl = new System.Windows.Controls.Image
             {
                 Source = img,
@@ -711,8 +727,8 @@ public partial class PdfCropViewModel : ObservableObject
                 SnapsToDevicePixels = true
             };
             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-            FixedPage.SetLeft(imgCtrl, 0);
-            FixedPage.SetTop(imgCtrl, 0);
+            FixedPage.SetLeft(imgCtrl, margin);
+            FixedPage.SetTop(imgCtrl, margin);
             page.Children.Add(imgCtrl);
         }
 
