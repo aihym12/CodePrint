@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using CodePrint.Models;
 using CodePrint.ViewModels;
+using CodePrint.Views.Dialogs;
 
 namespace CodePrint.Views.Panels;
 
@@ -136,6 +137,41 @@ public partial class LabelManagementPanel : UserControl
         var deleteItem = new MenuItem { Header = "删除", Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE5, 0x39, 0x35)) };
         deleteItem.Click += (_, _) => ViewModel.DeleteLabelCommand.Execute(doc);
         menu.Items.Add(deleteItem);
+
+        menu.PlacementTarget = btn;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>"我的" tab click handler.</summary>
+    private void MyTab_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.SwitchToMyTabCommand.Execute(null);
+    }
+
+    /// <summary>"模板库" tab click handler.</summary>
+    private void TemplateLibraryTab_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.SwitchToTemplateLibraryTabCommand.Execute(null);
+    }
+
+    /// <summary>排序按钮点击，弹出排序选项菜单。</summary>
+    private void SortButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+
+        var menu = new ContextMenu();
+
+        var byTimeItem = new MenuItem { Header = "按修改时间排序" };
+        byTimeItem.Click += (_, _) => ViewModel.SetSortModeCommand.Execute("0");
+        menu.Items.Add(byTimeItem);
+
+        var byNameItem = new MenuItem { Header = "按名称排序" };
+        byNameItem.Click += (_, _) => ViewModel.SetSortModeCommand.Execute("1");
+        menu.Items.Add(byNameItem);
+
+        var byCreateItem = new MenuItem { Header = "按创建时间排序" };
+        byCreateItem.Click += (_, _) => ViewModel.SetSortModeCommand.Execute("2");
+        menu.Items.Add(byCreateItem);
 
         menu.PlacementTarget = btn;
         menu.IsOpen = true;
