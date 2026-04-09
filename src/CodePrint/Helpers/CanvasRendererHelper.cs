@@ -478,7 +478,9 @@ public static class CanvasRendererHelper
         var canvas = new Canvas
         {
             Width = element.Width * MmToPx,
-            Height = element.Height * MmToPx
+            Height = element.Height * MmToPx,
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
         canvas.Children.Add(line);
         return canvas;
@@ -495,7 +497,9 @@ public static class CanvasRendererHelper
                 : BrushFromHex(element.FillColor),
             BorderBrush = BrushFromHex(element.BorderColor),
             BorderThickness = new Thickness(element.BorderThickness),
-            CornerRadius = new CornerRadius(element.CornerRadius)
+            CornerRadius = new CornerRadius(element.CornerRadius),
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
     }
 
@@ -572,7 +576,9 @@ public static class CanvasRendererHelper
         {
             Child = grid,
             BorderBrush = BrushFromHex(element.BorderColor),
-            BorderThickness = new Thickness(element.BorderThickness)
+            BorderThickness = new Thickness(element.BorderThickness),
+            UseLayoutRounding = true,
+            SnapsToDevicePixels = true
         };
     }
 
