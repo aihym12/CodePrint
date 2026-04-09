@@ -37,8 +37,21 @@
                         <TextBlock Text="小茗标签" Foreground="White" FontSize="16" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Column="1" Text="{Binding DocumentTitle}" Foreground="White" FontSize="13"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CurrentDocument.Name}" Foreground="White" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TitleWidthBox" Width="55" FontSize="12" Padding="2,1"
+                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                 Background="#FFFFFF" Foreground="#333" BorderBrush="#CCC" BorderThickness="1"
+                                 ToolTip="标签宽度 (mm)"
+                                 LostFocus="TitleWidthBox_LostFocus" KeyDown="TitleDimensionBox_KeyDown"/>
+                        <TextBlock Text="×" Foreground="White" FontSize="13" VerticalAlignment="Center" Margin="4,0"/>
+                        <TextBox x:Name="TitleHeightBox" Width="55" FontSize="12" Padding="2,1"
+                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                 Background="#FFFFFF" Foreground="#333" BorderBrush="#CCC" BorderThickness="1"
+                                 ToolTip="标签高度 (mm)"
+                                 LostFocus="TitleHeightBox_LostFocus" KeyDown="TitleDimensionBox_KeyDown"/>
+                        <TextBlock Text="mm" Foreground="White" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                         <Button Content="🏠 主页" Style="{StaticResource TitleBarButton}" Margin="0,0,8,0" Click="BackToHome_Click"/>

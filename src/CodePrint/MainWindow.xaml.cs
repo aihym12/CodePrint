@@ -72,6 +72,7 @@ public partial class MainWindow : Window
             _designerViewModel.CurrentFilePath = null;
 
         DesignerView.DataContext = _designerViewModel;
+        SyncTitleDimensionBoxes();
         ShowView("Designer");
     }
 
@@ -296,6 +297,7 @@ public partial class MainWindow : Window
             }
 
             ViewModel.RefreshDocumentProperties();
+            SyncTitleDimensionBoxes();
         }
     }
 
@@ -354,6 +356,79 @@ public partial class MainWindow : Window
             case ImageElement image:
                 image.CornerRadius *= uniformScale;
                 break;
+        }
+    }
+
+    /// <summary>将标题栏中的宽高输入框与当前文档尺寸保持同步。</summary>
+    private void SyncTitleDimensionBoxes()
+    {
+        TitleWidthBox.Text = ViewModel.CurrentDocument.WidthMm.ToString("F1");
+        TitleHeightBox.Text = ViewModel.CurrentDocument.HeightMm.ToString("F1");
+    }
+
+    /// <summary>从标题栏宽高输入框应用新尺寸到当前文档，并等比例缩放所有元素。</summary>
+    private void ApplyTitleDimension()
+    {
+        if (!double.TryParse(TitleWidthBox.Text, out double newWidth) || newWidth <= 0)
+        {
+            SyncTitleDimensionBoxes();
+            return;
+        }
+        if (!double.TryParse(TitleHeightBox.Text, out double newHeight) || newHeight <= 0)
+        {
+            SyncTitleDimensionBoxes();
+            return;
+        }
+
+        double oldWidth = ViewModel.CurrentDocument.WidthMm;
+        double oldHeight = ViewModel.CurrentDocument.HeightMm;
+
+        if (Math.Abs(oldWidth - newWidth) < 0.001 && Math.Abs(oldHeight - newHeight) < 0.001)
+            return;
+
+        ViewModel.CurrentDocument.WidthMm = newWidth;
+        ViewModel.CurrentDocument.HeightMm = newHeight;
+
+        // 等比例缩放画布内的所有元素
+        if (oldWidth > 0 && oldHeight > 0)
+        {
+            double scaleX = newWidth / oldWidth;
+            double scaleY = newHeight / oldHeight;
+
+            foreach (var element in ViewModel.CurrentDocument.Elements)
+            {
+                ScaleElement(element, scaleX, scaleY);
+            }
+        }
+
+        ViewModel.RefreshDocumentProperties();
+        SyncTitleDimensionBoxes();
+    }
+
+    private void TitleWidthBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyTitleDimension();
+    }
+
+    private void TitleHeightBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyTitleDimension();
+    }
+
+    private void TitleDimensionBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyTitleDimension();
+            // 移开焦点到画布区域
+            Keyboard.ClearFocus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            SyncTitleDimensionBoxes();
+            Keyboard.ClearFocus();
+            e.Handled = true;
         }
     }
 
