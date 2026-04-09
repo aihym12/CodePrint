@@ -257,6 +257,7 @@ public partial class LabelManagementViewModel : ObservableObject
     [RelayCommand]
     private void OpenTemplateLibrary()
     {
+        IsMyTabActive = false;
         RequestOpenTemplateLibrary?.Invoke();
     }
 

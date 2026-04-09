@@ -140,9 +140,7 @@ public partial class MainWindow : Window
 
     private void OnRequestOpenTemplateLibrary()
     {
-        // Switch to template library tab within label management
-        if (_labelManagementViewModel != null)
-            _labelManagementViewModel.IsMyTabActive = false;
+        // Tab switching is handled by the ViewModel's OpenTemplateLibrary command
     }
 
     private void ShowView(string view)
