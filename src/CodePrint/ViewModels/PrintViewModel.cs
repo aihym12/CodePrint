@@ -33,6 +33,21 @@ public partial class PrintViewModel : ObservableObject
     [ObservableProperty]
     private string _statusText = string.Empty;
 
+    /// <summary>边距提示文本。</summary>
+    [ObservableProperty]
+    private string _marginHintText = string.Empty;
+
+    partial void OnSettingsChanged(PrintSettings value)
+    {
+        UpdateMarginHint();
+    }
+
+    /// <summary>Updates the margin hint text from the current settings.</summary>
+    public void UpdateMarginHint()
+    {
+        MarginHintText = $"目前空出了 {Settings.PrintMarginPx} 像素";
+    }
+
     /// <summary>Raised when the dialog should close with a success result.</summary>
     public event Action<bool>? RequestClose;
 
@@ -111,10 +126,7 @@ public partial class PrintViewModel : ObservableObject
             printDialog.PrintTicket.CopyCount = Settings.Copies;
 
             // Get the printer's imageable-area origin so we can compensate for
-            // the offset that the WPF printing pipeline applies.  Without this
-            // compensation the content is shifted down/right by (OriginWidth,
-            // OriginHeight), which pushes the bottom/right off the physical page
-            // and leaves visible blank space.
+            // the offset that the WPF printing pipeline applies.
             double originX = 0, originY = 0;
             try
             {
@@ -130,14 +142,21 @@ public partial class PrintViewModel : ObservableObject
                 // If capabilities are unavailable, assume zero offset
             }
 
+            // User-configured print margin (shrink content on all sides)
+            double margin = Math.Max(0, Settings.PrintMarginPx);
+
             // Render label content to a high-DPI bitmap
             var renderBitmap = RenderLabelBitmap();
 
-            // Build a FixedDocument.  Position content at (-originX, -originY)
-            // so that after the printing pipeline adds the imageable-area offset,
-            // the net position is (0,0) on the physical paper – filling the page
-            // from edge to edge.
+            // Build a FixedDocument. Place content at (margin, margin) with
+            // reduced dimensions so all content (including border lines) fits
+            // within the printable area after the WPF pipeline shift.
             var fixedPage = new FixedPage { Width = pageW, Height = pageH };
+
+            // Calculate available area per label after accounting for printer
+            // imageable offset and user margin
+            double availLabelW = Math.Max(1, labelW - originX / cols - 2 * margin);
+            double availLabelH = Math.Max(1, labelH - originY / rows - 2 * margin);
 
             for (int r = 0; r < rows; r++)
             {
@@ -146,13 +165,42 @@ public partial class PrintViewModel : ObservableObject
                     var img = new Image
                     {
                         Source = renderBitmap,
-                        Width = labelW,
-                        Height = labelH,
-                        Stretch = Stretch.Fill
+                        Width = availLabelW,
+                        Height = availLabelH,
+                        Stretch = Stretch.Uniform
                     };
-                    FixedPage.SetLeft(img, c * labelW - originX);
-                    FixedPage.SetTop(img, r * labelH - originY);
+                    RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+
+                    double left = c * labelW + margin;
+                    double top = r * labelH + margin;
+
+                    // Mirror print: flip content horizontally
+                    if (Settings.MirrorPrint)
+                    {
+                        img.RenderTransformOrigin = new Point(0.5, 0.5);
+                        img.RenderTransform = new ScaleTransform(-1, 1);
+                    }
+
+                    FixedPage.SetLeft(img, left);
+                    FixedPage.SetTop(img, top);
                     fixedPage.Children.Add(img);
+
+                    // Draw cut/border lines around each label
+                    if (Settings.ShowCutLines)
+                    {
+                        var border = new System.Windows.Shapes.Rectangle
+                        {
+                            Width = availLabelW,
+                            Height = availLabelH,
+                            Stroke = Brushes.Black,
+                            StrokeThickness = 0.5,
+                            StrokeDashArray = new DoubleCollection { 4, 2 },
+                            Fill = Brushes.Transparent
+                        };
+                        FixedPage.SetLeft(border, left);
+                        FixedPage.SetTop(border, top);
+                        fixedPage.Children.Add(border);
+                    }
                 }
             }
 
