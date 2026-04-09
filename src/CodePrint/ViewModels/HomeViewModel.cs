@@ -16,6 +16,9 @@ public partial class HomeViewModel : ObservableObject
     /// <summary>Raised when the user has configured a new blank label and wants to enter the designer.</summary>
     public event Action<LabelDocument>? NavigateToDesigner;
 
+    /// <summary>Raised when the user imports a photo and wants to enter the designer with OCR processing.</summary>
+    public event Action<LabelDocument, string>? NavigateToDesignerWithOcr;
+
     /// <summary>Raised when the user selects PDF Crop &amp; Print.</summary>
     public event Action? NavigateToPdfCrop;
 
@@ -38,6 +41,12 @@ public partial class HomeViewModel : ObservableObject
     public void ConfirmNewLabel(LabelDocument document)
     {
         NavigateToDesigner?.Invoke(document);
+    }
+
+    /// <summary>Called by the view after importing a photo for OCR-based template creation.</summary>
+    public void ConfirmNewLabelWithOcr(LabelDocument document, string imagePath)
+    {
+        NavigateToDesignerWithOcr?.Invoke(document, imagePath);
     }
 
     [RelayCommand]

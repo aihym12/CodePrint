@@ -714,4 +714,83 @@ public partial class MainViewModel : ObservableObject
             StatusText = $"识别失败: {ex.Message}";
         }
     }
+
+    /// <summary>
+    /// Imports a photo, runs OCR to recognize text, creates text elements matching the
+    /// original layout, then removes the photo — keeping only text on the template.
+    /// </summary>
+    /// <param name="imagePath">Absolute path to the image file.</param>
+    public async Task ImportPhotoAsTextOnlyAsync(string imagePath)
+    {
+        StatusText = "正在识别文字，请稍候…";
+
+        try
+        {
+            var (lines, imgWidth, imgHeight) = await Services.OcrService.RecognizeAsync(imagePath);
+
+            // Scale factor: fit the image proportionally into the document area.
+            double scaleX = CurrentDocument.WidthMm / imgWidth;
+            double scaleY = CurrentDocument.HeightMm / imgHeight;
+            double scale = Math.Min(scaleX, scaleY);
+
+            // Scaled image dimensions in mm.
+            double scaledWidthMm = imgWidth * scale;
+            double scaledHeightMm = imgHeight * scale;
+
+            // Center the scaled image within the document area.
+            double offsetX = (CurrentDocument.WidthMm - scaledWidthMm) / 2.0;
+            double offsetY = (CurrentDocument.HeightMm - scaledHeightMm) / 2.0;
+
+            if (lines.Count == 0)
+            {
+                StatusText = "未识别到文字";
+                return;
+            }
+
+            // OCR bounding boxes include extra padding (ascenders, descenders, line gap).
+            // Apply a correction factor so the estimated font size matches the visual size.
+            const double FontSizeCorrectionFactor = 0.78;
+            const double MinFontSizePoints = 6.0;
+            // Add 5% margin to element width so text is not clipped at the edges.
+            const double WidthMarginFactor = 1.05;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                double charHeightPx = line.MedianWordHeight > 0
+                    ? line.MedianWordHeight
+                    : line.Height;
+
+                double charHeightMm = charHeightPx * scale;
+                double fontSizePt = charHeightMm / MmPerPoint * FontSizeCorrectionFactor;
+                fontSizePt = Math.Max(MinFontSizePoints, Math.Round(fontSizePt, 1));
+
+                double elementWidthMm = line.Width * scale * WidthMarginFactor;
+                double lineHeightMm = line.Height * scale;
+
+                var textElement = new TextElement
+                {
+                    Name = $"识别文本{i + 1}",
+                    X = offsetX + line.X * scale,
+                    Y = offsetY + line.Y * scale,
+                    Width = elementWidthMm,
+                    Height = lineHeightMm,
+                    Content = line.Text,
+                    FontSize = fontSizePt,
+                    ZIndex = i
+                };
+
+                var action = new AddElementAction(CurrentDocument.Elements, textElement);
+                _undoRedo.Execute(action);
+            }
+
+            SelectedElement = CurrentDocument.Elements.LastOrDefault();
+            StatusText = $"已识别 {lines.Count} 行文字";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"识别失败: {ex.Message}";
+        }
+    }
 }
