@@ -145,13 +145,17 @@ public class PdfRenderService
     /// bounding box in millimeters. A small padding is added so content is not clipped
     /// right at the edge.
     /// </summary>
-    public async Task<(double X, double Y, double Width, double Height)> GetContentBoundsMmAsync(
-        int pageIndex, int threshold = 245, double paddingMm = 0.5)
+    public async Task<(double X, double Y, double Width, double Height)> GetContentBoundsMmAsync(int pageIndex)
     {
         var (pageWidthMm, pageHeightMm) = GetPageSizeMm(pageIndex);
 
-        // Render at low DPI for fast whitespace detection
+        // 72 DPI is sufficient for whitespace detection and keeps the scan fast
         const double detectionDpi = 72;
+        // Pixels with all channels above this value are treated as whitespace
+        const int whiteThreshold = 245;
+        // Small padding around detected content to avoid clipping at the edge
+        const double paddingMm = 0.5;
+
         var bitmap = await RenderPageAsync(pageIndex, detectionDpi);
 
         // Convert to Bgra32 for consistent pixel access
@@ -174,7 +178,7 @@ public class PdfRenderService
                 byte g = pixels[idx + 1];
                 byte r = pixels[idx + 2];
                 // Pixel is considered "content" if any channel is below threshold
-                if (r < threshold || g < threshold || b < threshold)
+                if (r < whiteThreshold || g < whiteThreshold || b < whiteThreshold)
                 {
                     if (x < minX) minX = x;
                     if (x > maxX) maxX = x;
