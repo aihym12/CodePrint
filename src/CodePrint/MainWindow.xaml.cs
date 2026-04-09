@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using CodePrint.Helpers;
 using CodePrint.Models;
 using CodePrint.Services;
@@ -53,6 +54,7 @@ public partial class MainWindow : Window
     {
         _homeViewModel = (HomeViewModel)HomePageView.DataContext;
         _homeViewModel.NavigateToDesigner += NavigateToDesigner;
+        _homeViewModel.NavigateToDesignerWithOcr += NavigateToDesignerWithOcr;
         _homeViewModel.NavigateToPdfCrop += NavigateToPdfCrop;
         _homeViewModel.NavigateToPhotoPrint += NavigateToPhotoPrint;
         _homeViewModel.NavigateToTemplateLibrary += NavigateToLabelManagement;
@@ -71,6 +73,53 @@ public partial class MainWindow : Window
 
         DesignerView.DataContext = _designerViewModel;
         ShowView("Designer");
+    }
+
+    private async void NavigateToDesignerWithOcr(LabelDocument document, string imagePath)
+    {
+        // Navigate to the designer first
+        NavigateToDesigner(document);
+
+        // Show loading overlay with spinning animation
+        StartSpinnerAnimation();
+        OcrLoadingOverlay.Visibility = Visibility.Visible;
+
+        try
+        {
+            // Run OCR — only text elements are added, no image element
+            await _designerViewModel.ImportPhotoAsTextOnlyAsync(imagePath);
+        }
+        finally
+        {
+            // Hide loading overlay
+            StopSpinnerAnimation();
+            OcrLoadingOverlay.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private Storyboard? _spinnerStoryboard;
+
+    private void StartSpinnerAnimation()
+    {
+        var animation = new DoubleAnimation
+        {
+            From = 0,
+            To = 360,
+            Duration = TimeSpan.FromSeconds(1),
+            RepeatBehavior = RepeatBehavior.Forever
+        };
+        _spinnerStoryboard = new Storyboard();
+        _spinnerStoryboard.Children.Add(animation);
+        Storyboard.SetTarget(animation, OcrLoadingOverlay);
+        Storyboard.SetTargetName(animation, "SpinnerRotation");
+        Storyboard.SetTargetProperty(animation, new PropertyPath(System.Windows.Media.RotateTransform.AngleProperty));
+        _spinnerStoryboard.Begin(this);
+    }
+
+    private void StopSpinnerAnimation()
+    {
+        _spinnerStoryboard?.Stop(this);
+        _spinnerStoryboard = null;
     }
 
     private void NavigateToPdfCrop()

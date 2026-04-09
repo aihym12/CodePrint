@@ -106,39 +106,7 @@ public partial class HomePage : UserControl
             Orientation = widthMm > heightMm ? PrintOrientation.Landscape : PrintOrientation.Portrait
         };
 
-        // Add an ImageElement that fills the entire label
-        var imageElement = new ImageElement
-        {
-            Name = Path.GetFileNameWithoutExtension(imagePath),
-            ImagePath = imagePath,
-            X = 0,
-            Y = 0,
-            Width = widthMm,
-            Height = heightMm,
-            MaintainAspectRatio = true,
-            IsLocked = false,
-            ZIndex = 0
-        };
-        document.Elements.Add(imageElement);
-
-        // Add an editable TextElement so users can add text on top of the image
-        var textElement = new TextElement
-        {
-            Name = "文本",
-            Content = "双击编辑文字",
-            X = widthMm * 0.1,
-            Y = heightMm * 0.85,
-            Width = widthMm * 0.8,
-            Height = Math.Max(heightMm * 0.1, 8),
-            FontSize = 14,
-            ForegroundColor = "#FFFFFF",
-            BackgroundColor = "Transparent",
-            IsLocked = false,
-            ZIndex = 1,
-            TextAlignment = Models.TextAlignment.Center
-        };
-        document.Elements.Add(textElement);
-
-        ViewModel.ConfirmNewLabel(document);
+        // Navigate to designer and trigger OCR processing
+        ViewModel.ConfirmNewLabelWithOcr(document, imagePath);
     }
 }

@@ -208,6 +208,30 @@
                     <TextBlock Grid.Column="2" Text="{Binding CurrentUser.MaskedPhone}" VerticalAlignment="Center" FontSize="11" Foreground="#666"/>
                 </Grid>
             </Border>
+
+            <!-- OCR Loading Overlay -->
+            <Grid x:Name="OcrLoadingOverlay" Grid.RowSpan="5" Visibility="Collapsed" Background="#88000000">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Spinning circle -->
+                    <Border Width="60" Height="60" CornerRadius="30" BorderThickness="4"
+                            HorizontalAlignment="Center" Opacity="0.9"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotation" Angle="0"/>
+                        </Border.RenderTransform>
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="White" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                    </Border>
+                    <TextBlock Text="正在识别文字，请稍候..." Foreground="White" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    <TextBlock Text="系统正在自动识别照片中的文字内容" Foreground="#CCCCCC" FontSize="12"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Grid>
         </Grid>
 
         <!-- PDF Crop View (hidden until user selects it) -->
