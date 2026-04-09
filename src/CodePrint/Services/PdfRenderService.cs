@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Windows.Data.Pdf;
 using Windows.Storage;
@@ -136,6 +137,65 @@ public class PdfRenderService
 
         using var page = _pdfDocument.GetPage((uint)pageIndex);
         return (page.Size.Width, page.Size.Height);
+    }
+
+    /// <summary>
+    /// Detects the content bounding box of a PDF page by trimming surrounding whitespace.
+    /// Renders at a low DPI, scans pixels to find non-white content, and returns the
+    /// bounding box in millimeters. A small padding is added so content is not clipped
+    /// right at the edge.
+    /// </summary>
+    public async Task<(double X, double Y, double Width, double Height)> GetContentBoundsMmAsync(
+        int pageIndex, int threshold = 245, double paddingMm = 0.5)
+    {
+        var (pageWidthMm, pageHeightMm) = GetPageSizeMm(pageIndex);
+
+        // Render at low DPI for fast whitespace detection
+        const double detectionDpi = 72;
+        var bitmap = await RenderPageAsync(pageIndex, detectionDpi);
+
+        // Convert to Bgra32 for consistent pixel access
+        var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+        int w = converted.PixelWidth;
+        int h = converted.PixelHeight;
+        int stride = w * 4;
+        var pixels = new byte[stride * h];
+        converted.CopyPixels(pixels, stride, 0);
+
+        // Find bounding box of non-white pixels
+        int minX = w, minY = h, maxX = -1, maxY = -1;
+        for (int y = 0; y < h; y++)
+        {
+            int rowOffset = y * stride;
+            for (int x = 0; x < w; x++)
+            {
+                int idx = rowOffset + x * 4;
+                byte b = pixels[idx];
+                byte g = pixels[idx + 1];
+                byte r = pixels[idx + 2];
+                // Pixel is considered "content" if any channel is below threshold
+                if (r < threshold || g < threshold || b < threshold)
+                {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        // If no content found, return full page
+        if (maxX < 0)
+            return (0, 0, pageWidthMm, pageHeightMm);
+
+        // Convert pixel bounds to mm (at detectionDpi, 1 pixel = 25.4/detectionDpi mm)
+        double pixelToMm = 25.4 / detectionDpi;
+        double contentX = Math.Max(0, minX * pixelToMm - paddingMm);
+        double contentY = Math.Max(0, minY * pixelToMm - paddingMm);
+        double contentRight = Math.Min(pageWidthMm, (maxX + 1) * pixelToMm + paddingMm);
+        double contentBottom = Math.Min(pageHeightMm, (maxY + 1) * pixelToMm + paddingMm);
+
+        return (contentX, contentY, contentRight - contentX, contentBottom - contentY);
     }
 
     /// <summary>Releases the loaded document.</summary>

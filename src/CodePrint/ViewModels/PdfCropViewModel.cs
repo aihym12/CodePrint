@@ -622,7 +622,7 @@ public partial class PdfCropViewModel : ObservableObject
             if (ProcessingMode == PdfProcessingMode.PageCrop && IsNextStepVisible)
             {
                 // Show cropped preview so the user sees exactly what will be printed
-                var crop = GetCropRect(CurrentPageIndex);
+                var crop = await GetCropRectAsync(CurrentPageIndex);
                 PreviewImage = await _pdfService.RenderPageCroppedAsync(
                     CurrentPageIndex, dpi, crop.X, crop.Y, crop.Width, crop.Height);
             }
@@ -640,11 +640,11 @@ public partial class PdfCropViewModel : ObservableObject
     /// <summary>
     /// Calculates the crop rectangle in millimeters for the given page based on
     /// the current processing mode and crop settings.
-    /// For Auto mode: returns the full page dimensions so all content is preserved;
-    /// the print/preview pipeline scales the rendered image to fit the paper.
+    /// For Auto mode: detects the content bounding box (trims whitespace) so all
+    /// content is preserved; the print/preview pipeline scales the result to fit the paper.
     /// For Manual mode: uses user-specified CropX/Y/Width/Height.
     /// </summary>
-    private (double X, double Y, double Width, double Height) GetCropRect(int pageIndex)
+    private async Task<(double X, double Y, double Width, double Height)> GetCropRectAsync(int pageIndex)
     {
         var (pageWidthMm, pageHeightMm) = _pdfService.GetPageSizeMm(pageIndex);
 
@@ -658,10 +658,10 @@ public partial class PdfCropViewModel : ObservableObject
             return (x, y, w, h);
         }
 
-        // Auto mode: use the full page so all content is visible.
-        // The print/preview pipeline uses Stretch.Uniform to scale
-        // the rendered image down to fit within the selected paper size.
-        return (0, 0, pageWidthMm, pageHeightMm);
+        // Auto mode: detect content bounds (trim whitespace) so only the
+        // actual content area is rendered. Stretch.Uniform then scales it
+        // to fit within the selected paper size.
+        return await _pdfService.GetContentBoundsMmAsync(pageIndex);
     }
 
     /// <summary>Renders a PDF page for printing, applying crop when in PageCrop mode.</summary>
@@ -669,7 +669,7 @@ public partial class PdfCropViewModel : ObservableObject
     {
         if (ProcessingMode == PdfProcessingMode.PageCrop)
         {
-            var crop = GetCropRect(pageIndex);
+            var crop = await GetCropRectAsync(pageIndex);
             return await _pdfService.RenderPageCroppedAsync(
                 pageIndex, dpi, crop.X, crop.Y, crop.Width, crop.Height);
         }
