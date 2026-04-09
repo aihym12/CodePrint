@@ -486,6 +486,13 @@ public partial class PdfCropViewModel : ObservableObject
                 // Each column gets exactly one label width; total page width = labelW * columns
                 var perColumnW = labelW;
 
+                // Distribute the printable width evenly across columns.
+                // The printer adds originX as a left margin, so the total
+                // available width on paper is (pageW - originX).
+                double totalAvailW = Math.Max(1, pageW - originX);
+                double availColW = totalAvailW / columns;
+                double availH = Math.Max(1, pageH - originY);
+
                 for (int g = 0; g < pageIndices.Count; g += columns)
                 {
                     var fixedPage = new FixedPage { Width = pageW, Height = pageH };
@@ -499,15 +506,15 @@ public partial class PdfCropViewModel : ObservableObject
                             var imgCtrl = new System.Windows.Controls.Image
                             {
                                 Source = img,
-                                Width = perColumnW,
-                                Height = pageH,
+                                Width = availColW,
+                                Height = availH,
                                 Stretch = Stretch.Uniform,
                                 UseLayoutRounding = true,
                                 SnapsToDevicePixels = true
                             };
                             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-                            FixedPage.SetLeft(imgCtrl, c * perColumnW - originX);
-                            FixedPage.SetTop(imgCtrl, -originY);
+                            FixedPage.SetLeft(imgCtrl, c * availColW);
+                            FixedPage.SetTop(imgCtrl, 0);
                             fixedPage.Children.Add(imgCtrl);
                         }
                     }
@@ -686,21 +693,26 @@ public partial class PdfCropViewModel : ObservableObject
 
         if (img != null)
         {
-            // Fill the entire label area; position at (-originX, -originY) to
-            // compensate for the imageable-area offset that the WPF printing
-            // pipeline applies, so content starts at the physical page corner.
+            // Fit content within the printer's imageable (printable) area instead
+            // of shifting it to a negative offset.  The WPF print pipeline adds
+            // (originX, originY) automatically, so the image placed at (0,0) will
+            // appear at the imageable-area origin on paper.  By sizing the image
+            // to the imageable area and using Stretch.Uniform the content is
+            // scaled to fill the printable region without any edge being clipped.
+            double availW = Math.Max(1, pageW - originX);
+            double availH = Math.Max(1, pageH - originY);
             var imgCtrl = new System.Windows.Controls.Image
             {
                 Source = img,
-                Width = pageW,
-                Height = pageH,
+                Width = availW,
+                Height = availH,
                 Stretch = Stretch.Uniform,
                 UseLayoutRounding = true,
                 SnapsToDevicePixels = true
             };
             RenderOptions.SetBitmapScalingMode(imgCtrl, BitmapScalingMode.HighQuality);
-            FixedPage.SetLeft(imgCtrl, -originX);
-            FixedPage.SetTop(imgCtrl, -originY);
+            FixedPage.SetLeft(imgCtrl, 0);
+            FixedPage.SetTop(imgCtrl, 0);
             page.Children.Add(imgCtrl);
         }
 
