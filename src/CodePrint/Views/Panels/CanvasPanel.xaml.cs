@@ -94,6 +94,11 @@ public partial class CanvasPanel : UserControl
             }
             RefreshAllElements();
         }
+        else if (e.PropertyName == nameof(MainViewModel.DocumentDimensions))
+        {
+            // Document dimensions changed (e.g. via LabelSettingsDialog)
+            UpdateCanvasSize();
+        }
     }
 
     private void Elements_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -137,10 +142,23 @@ public partial class CanvasPanel : UserControl
 
         if (ViewModel?.CurrentDocument == null) return;
 
+        UpdateCanvasSize();
+
         foreach (var element in ViewModel.CurrentDocument.Elements)
             AddElementVisual(element);
 
         UpdatePlaceholderVisibility();
+    }
+
+    /// <summary>
+    /// Updates the DesignCanvas dimensions to match the current document size.
+    /// </summary>
+    private void UpdateCanvasSize()
+    {
+        if (ViewModel?.CurrentDocument == null) return;
+
+        DesignCanvas.Width = ViewModel.CurrentDocument.WidthMm * MmToPx;
+        DesignCanvas.Height = ViewModel.CurrentDocument.HeightMm * MmToPx;
     }
 
     private void AddElementVisual(LabelElement element)

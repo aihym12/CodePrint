@@ -66,7 +66,15 @@ public partial class MainViewModel : ObservableObject
     public void RefreshDocumentProperties()
     {
         OnPropertyChanged(nameof(DocumentTitle));
+        OnPropertyChanged(nameof(DocumentDimensions));
     }
+
+    /// <summary>
+    /// Returns the document dimensions as a formatted string.
+    /// Also serves as a notification trigger when the document size changes
+    /// (e.g. via the label settings dialog).
+    /// </summary>
+    public string DocumentDimensions => $"{CurrentDocument.WidthMm}×{CurrentDocument.HeightMm}";
 
     // ── File Operations ──
 
