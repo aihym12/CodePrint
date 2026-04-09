@@ -640,8 +640,8 @@ public partial class PdfCropViewModel : ObservableObject
     /// <summary>
     /// Calculates the crop rectangle in millimeters for the given page based on
     /// the current processing mode and crop settings.
-    /// For Auto mode: crops from top-left, sized to the selected paper dimensions
-    /// (capped to actual page dimensions).
+    /// For Auto mode: returns the full page dimensions so all content is preserved;
+    /// the print/preview pipeline scales the rendered image to fit the paper.
     /// For Manual mode: uses user-specified CropX/Y/Width/Height.
     /// </summary>
     private (double X, double Y, double Width, double Height) GetCropRect(int pageIndex)
@@ -658,13 +658,10 @@ public partial class PdfCropViewModel : ObservableObject
             return (x, y, w, h);
         }
 
-        // Auto mode: center the crop rectangle on the page so content is
-        // evenly trimmed from both sides when the page exceeds the paper size.
-        double cropW = Math.Min(PaperWidthMm, pageWidthMm);
-        double cropH = Math.Min(PaperHeightMm, pageHeightMm);
-        double cropX = Math.Max(0, (pageWidthMm - cropW) / 2.0);
-        double cropY = Math.Max(0, (pageHeightMm - cropH) / 2.0);
-        return (cropX, cropY, cropW, cropH);
+        // Auto mode: use the full page so all content is visible.
+        // The print/preview pipeline uses Stretch.Uniform to scale
+        // the rendered image down to fit within the selected paper size.
+        return (0, 0, pageWidthMm, pageHeightMm);
     }
 
     /// <summary>Renders a PDF page for printing, applying crop when in PageCrop mode.</summary>
