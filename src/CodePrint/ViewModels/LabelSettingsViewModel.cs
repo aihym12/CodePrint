@@ -39,6 +39,12 @@ public partial class LabelSettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _backgroundColor = "#FFFFFF";
 
+    /// <summary>
+    /// 当画布尺寸改变时，是否等比例缩放画布内的所有元素。
+    /// </summary>
+    [ObservableProperty]
+    private bool _scaleElements = true;
+
     public void LoadFromDocument(LabelDocument doc)
     {
         WidthMm = doc.WidthMm;

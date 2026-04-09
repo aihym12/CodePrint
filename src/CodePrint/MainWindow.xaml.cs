@@ -269,10 +269,88 @@ public partial class MainWindow : Window
     {
         var dialog = new LabelSettingsDialog { Owner = this };
         dialog.LoadFromMainViewModel(ViewModel);
+
+        // 保存旧的画布尺寸，用于等比例缩放计算
+        double oldWidth = ViewModel.CurrentDocument.WidthMm;
+        double oldHeight = ViewModel.CurrentDocument.HeightMm;
+
         if (dialog.ShowDialog() == true)
         {
+            bool scaleElements = dialog.SettingsViewModel.ScaleElements;
             dialog.SettingsViewModel.ApplyToDocument(ViewModel.CurrentDocument);
+
+            // 等比例缩放画布内的所有元素
+            double newWidth = ViewModel.CurrentDocument.WidthMm;
+            double newHeight = ViewModel.CurrentDocument.HeightMm;
+
+            if (scaleElements && (Math.Abs(oldWidth - newWidth) > 0.001 || Math.Abs(oldHeight - newHeight) > 0.001)
+                && oldWidth > 0 && oldHeight > 0)
+            {
+                double scaleX = newWidth / oldWidth;
+                double scaleY = newHeight / oldHeight;
+
+                foreach (var element in ViewModel.CurrentDocument.Elements)
+                {
+                    ScaleElement(element, scaleX, scaleY);
+                }
+            }
+
             ViewModel.RefreshDocumentProperties();
+        }
+    }
+
+    /// <summary>
+    /// 按指定的缩放因子等比例缩放单个元素的位置、大小和字号等属性。
+    /// </summary>
+    private static void ScaleElement(LabelElement element, double scaleX, double scaleY)
+    {
+        // 缩放位置和大小
+        element.X *= scaleX;
+        element.Y *= scaleY;
+        element.Width *= scaleX;
+        element.Height *= scaleY;
+
+        // 统一缩放因子，用于字号等不区分方向的属性
+        double uniformScale = Math.Sqrt(scaleX * scaleY);
+
+        switch (element)
+        {
+            case TextElement text:
+                text.FontSize = Math.Max(1, text.FontSize * uniformScale);
+                text.LetterSpacing *= uniformScale;
+                break;
+
+            case DateElement date:
+                date.FontSize = Math.Max(1, date.FontSize * uniformScale);
+                break;
+
+            case WatermarkElement watermark:
+                watermark.FontSize = Math.Max(1, watermark.FontSize * uniformScale);
+                watermark.Spacing *= uniformScale;
+                break;
+
+            case BarcodeElement barcode:
+                barcode.BarHeight *= uniformScale;
+                break;
+
+            case LineElement line:
+                line.StrokeThickness = Math.Max(0.1, line.StrokeThickness * uniformScale);
+                line.X2 *= scaleX;
+                line.Y2 *= scaleY;
+                break;
+
+            case RectangleElement rect:
+                rect.BorderThickness = Math.Max(0.1, rect.BorderThickness * uniformScale);
+                rect.CornerRadius *= uniformScale;
+                break;
+
+            case TableElement table:
+                table.BorderThickness = Math.Max(0.1, table.BorderThickness * uniformScale);
+                break;
+
+            case ImageElement image:
+                image.CornerRadius *= uniformScale;
+                break;
         }
     }
 

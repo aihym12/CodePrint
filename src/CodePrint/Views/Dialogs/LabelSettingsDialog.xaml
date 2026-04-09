@@ -89,6 +89,9 @@
                             Background="{Binding BackgroundColor, Converter={StaticResource ColorToBrush}}"/>
                     <TextBox Text="{Binding BackgroundColor}" Padding="4" Margin="8,0,0,0" Width="100" VerticalContentAlignment="Center"/>
                 </StackPanel>
+
+                <CheckBox Content="等比例缩放画布内容" IsChecked="{Binding ScaleElements}" Margin="0,16,0,0"
+                          ToolTip="更改画布尺寸时，自动等比例缩放所有元素的位置、大小和字号"/>
             </StackPanel>
         </ScrollViewer>
 
