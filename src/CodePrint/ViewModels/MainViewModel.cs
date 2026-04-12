@@ -205,12 +205,29 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void DeleteSelected()
     {
-        if (SelectedElement != null && !SelectedElement.IsLocked)
+        // Collect all non-locked selected elements to delete
+        var toDelete = SelectedElements.Where(e => !e.IsLocked).ToList();
+
+        // Fall back to single SelectedElement if nothing in multi-selection
+        if (toDelete.Count == 0 && SelectedElement != null && !SelectedElement.IsLocked)
+            toDelete.Add(SelectedElement);
+
+        if (toDelete.Count == 0) return;
+
+        if (toDelete.Count == 1)
         {
-            var action = new RemoveElementAction(CurrentDocument.Elements, SelectedElement);
+            var action = new RemoveElementAction(CurrentDocument.Elements, toDelete[0]);
             _undoRedo.Execute(action);
-            SelectedElement = null;
         }
+        else
+        {
+            var actions = toDelete.Select(e => new RemoveElementAction(CurrentDocument.Elements, e)).ToList();
+            var composite = new CompositeAction("删除多个元素", actions);
+            _undoRedo.Execute(composite);
+        }
+
+        SelectedElements.Clear();
+        SelectedElement = null;
     }
 
     // ── Transform ──
