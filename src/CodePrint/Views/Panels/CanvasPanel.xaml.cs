@@ -251,6 +251,12 @@ public partial class CanvasPanel : UserControl
         var element = ViewModel.CurrentDocument.Elements.FirstOrDefault(el => el.Id == elementId);
         if (element == null) return;
 
+        // Commit any active inline editing when clicking on a different element
+        if (_editingElement != null && _editingElement.Id != element.Id)
+        {
+            CommitInlineEditing();
+        }
+
         // Double-click on text element → enter inline editing
         if (e.ClickCount == 2 && element is TextElement textEl)
         {
@@ -627,6 +633,8 @@ public partial class CanvasPanel : UserControl
     {
         if (ViewModel == null) return;
 
+        CommitInlineEditing();
+
         StartRubberBand(e.GetPosition(DesignCanvas), MouseButton.Right);
         DesignCanvas.CaptureMouse();
         e.Handled = true; // Prevent default right-click processing
@@ -712,6 +720,8 @@ public partial class CanvasPanel : UserControl
     private void Canvas_Drop(object sender, DragEventArgs e)
     {
         if (ViewModel == null) return;
+
+        CommitInlineEditing();
 
         if (e.Data.GetDataPresent("ElementType"))
         {
