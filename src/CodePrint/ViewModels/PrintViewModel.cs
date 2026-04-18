@@ -1,21 +1,26 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Printing;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CodePrint.Helpers;
 using CodePrint.Models;
 using CodePrint.Services;
+using CodePrint.Services.Printing;
 
 namespace CodePrint.ViewModels;
 
 public partial class PrintViewModel : ObservableObject
 {
+    /// <summary>底层打印服务（默认 GDI 实现，可注入替换为 ZPL/TSPL/Mock）。</summary>
+    private readonly IPrintService _printService;
+
+    /// <summary>当前作业的取消源。仅在打印进行中非空。</summary>
+    private CancellationTokenSource? _activeCts;
+
     [ObservableProperty]
     private PrintSettings _settings = PrintSettingsService.Load();
 
@@ -34,9 +39,28 @@ public partial class PrintViewModel : ObservableObject
     [ObservableProperty]
     private string _statusText = string.Empty;
 
+    /// <summary>打印进度 [0,1]；&lt;0 表示未知/未开始。</summary>
+    [ObservableProperty]
+    private double _printProgress = -1;
+
+    /// <summary>是否正在打印（用于禁用/启用按钮、显示取消按钮）。</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrintCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelPrintCommand))]
+    private bool _isPrinting;
+
     /// <summary>边距提示文本。</summary>
     [ObservableProperty]
     private string _marginHintText = string.Empty;
+
+    /// <summary>XAML 用的无参构造：使用默认 GDI 实现。</summary>
+    public PrintViewModel() : this(new GdiPrintService()) { }
+
+    /// <summary>注入式构造：测试或切换为 ZPL/TSPL 等实现时使用。</summary>
+    public PrintViewModel(IPrintService printService)
+    {
+        _printService = printService ?? throw new ArgumentNullException(nameof(printService));
+    }
 
     partial void OnSettingsChanged(PrintSettings value)
     {
@@ -55,25 +79,32 @@ public partial class PrintViewModel : ObservableObject
     public int TotalLabels => Settings.LabelsPerRow * Settings.LabelsPerColumn;
 
     [RelayCommand]
-    private void RefreshPrinters()
+    private async Task RefreshPrintersAsync()
     {
         AvailablePrinters.Clear();
+        IReadOnlyList<PrinterInfo> printers;
         try
         {
-            using var printServer = new LocalPrintServer();
-            var queues = printServer.GetPrintQueues();
-            foreach (var queue in queues)
-            {
-                AvailablePrinters.Add(queue.Name);
-            }
+            printers = await _printService.DiscoverPrintersAsync();
         }
         catch (Exception ex)
         {
-            // 在受限环境（无打印权限/无 spooler）下回退到虚拟打印机；
-            // 但务必把原因记到日志，便于排查"为什么列表里只有一台打印机"。
-            Debug.WriteLine($"[Print] 枚举打印机失败: {ex}");
+            // IPrintService 约定不抛异常；这里只做防御。
+            Debug.WriteLine($"[PrintVM] 枚举打印机抛出异常: {ex}");
+            printers = Array.Empty<PrinterInfo>();
+        }
+
+        if (printers.Count == 0)
+        {
+            // 受限环境（无 spooler / 无权限）下回退到虚拟打印机；
+            // 用户可见提示 + 日志，避免出现"为什么列表里只有一个"的困惑。
             StatusText = "无法访问本地打印服务，已回退到虚拟打印机";
             AvailablePrinters.Add("Microsoft Print to PDF");
+        }
+        else
+        {
+            foreach (var p in printers)
+                AvailablePrinters.Add(p.Name);
         }
 
         if (AvailablePrinters.Count > 0)
@@ -86,8 +117,10 @@ public partial class PrintViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void Print()
+    private bool CanPrint() => !IsPrinting;
+
+    [RelayCommand(CanExecute = nameof(CanPrint))]
+    private async Task PrintAsync()
     {
         if (Document == null || string.IsNullOrEmpty(SelectedPrinter))
         {
@@ -98,210 +131,51 @@ public partial class PrintViewModel : ObservableObject
         Settings.PrinterName = SelectedPrinter;
         SaveSettings();
 
-        // 打印服务器需要在整个打印过程中保持存活，因为后续要调用
-        // PrintQueue.GetPrintCapabilities 以及 PrintDialog.PrintDocument，
-        // 它们都依赖底层的 COM 句柄。提前 Dispose 会出现"访问已释放对象"
-        // 的难以排查的偶发异常。
-        LocalPrintServer? printServer = null;
+        var request = new PrintJobRequest(
+            Document,
+            Settings,
+            SelectedPrinter,
+            JobName: $"CodePrint - {Document.Name}");
+
+        var progress = new Progress<PrintProgress>(p =>
+        {
+            StatusText = p.Message;
+            PrintProgress = p.Fraction;
+        });
+
+        _activeCts = new CancellationTokenSource();
+        IsPrinting = true;
         try
         {
-            var printDialog = new PrintDialog();
+            var result = await _printService.PrintAsync(request, progress, _activeCts.Token);
 
-            // Configure the selected printer
-            try
+            if (result.Success)
             {
-                printServer = new LocalPrintServer();
-                var queue = printServer.GetPrintQueue(SelectedPrinter);
-                printDialog.PrintQueue = queue;
+                StatusText = "打印任务已发送";
+                RequestClose?.Invoke(true);
             }
-            catch (Exception ex)
+            else
             {
-                // 找不到指定打印机时回退到系统默认打印机；记录原因便于诊断。
-                Debug.WriteLine($"[Print] 无法获取打印队列 '{SelectedPrinter}': {ex.Message}");
+                // 取消和失败的状态文字已在 progress 中给出；此处只做兜底。
+                StatusText = result.ErrorMessage ?? "打印未完成";
             }
-
-            // ── 单位说明 ──
-            // WPF 打印管线统一使用"设备无关像素"（DIP，1 DIP = 1/96 英寸），
-            // PrintTicket.PageMediaSize 也是 DIP 单位。
-            // DesignConstants.MmToPixel == 96/25.4，因此 mm * MmToPixel 得到的就是 DIP，
-            // 和 PageMediaSize 所需单位一致，无需再次换算。
-            var mmToDip = DesignConstants.MmToPixel;
-            int rows = Math.Max(1, Settings.LabelsPerRow);
-            int cols = Math.Max(1, Settings.LabelsPerColumn);
-            double labelW = Settings.PaperWidth * mmToDip;
-            double labelH = Settings.PaperHeight * mmToDip;
-            double pageW = labelW * cols;
-            double pageH = labelH * rows;
-
-            // Set the exact paper size so the printer uses the correct label dimensions
-            printDialog.PrintTicket.PageMediaSize = new PageMediaSize(pageW, pageH);
-            printDialog.PrintTicket.PageOrientation = Settings.Orientation == PrintOrientation.Landscape
-                ? System.Printing.PageOrientation.Landscape
-                : System.Printing.PageOrientation.Portrait;
-            printDialog.PrintTicket.CopyCount = Settings.Copies;
-
-            // 取打印机可印区原点和范围。
-            // 原点（OriginWidth/Height）是相对于物理页面左上角的偏移
-            // （通常是几毫米的不可印边缘），整页**只发生一次**，绝不能再按
-            // 行列均摊到每一张子标签上——之前的实现 originX/cols、originY/rows
-            // 是错误的，会让中间几列的标签错位。
-            // 范围（ExtentWidth/Height）是可印区的实际宽高，套准标志要画在
-            // 这一矩形的四角上，而不是简单假设左右/上下边距对称。
-            double originX = 0, originY = 0;
-            double extentW = pageW, extentH = pageH;
-            try
-            {
-                var caps = printDialog.PrintQueue.GetPrintCapabilities(printDialog.PrintTicket);
-                if (caps.PageImageableArea != null)
-                {
-                    originX = caps.PageImageableArea.OriginWidth;
-                    originY = caps.PageImageableArea.OriginHeight;
-                    if (caps.PageImageableArea.ExtentWidth > 0)
-                        extentW = caps.PageImageableArea.ExtentWidth;
-                    if (caps.PageImageableArea.ExtentHeight > 0)
-                        extentH = caps.PageImageableArea.ExtentHeight;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Print] 读取打印机可印区失败，按零偏移处理: {ex.Message}");
-            }
-
-            // User-configured print margin (shrink content on all sides)
-            double margin = Math.Max(0, Settings.PrintMarginPx);
-
-            // Render label content to a high-DPI bitmap
-            var renderBitmap = RenderLabelBitmap();
-
-            // Build a FixedDocument. Place content at (margin, margin) with
-            // reduced dimensions so all content (including border lines) fits
-            // within the printable area after the WPF pipeline shift.
-            var fixedPage = new FixedPage { Width = pageW, Height = pageH };
-
-            // 每张标签的可用宽高：仅扣除用户边距；可印区原点的整体偏移
-            // 在最外层做一次平移即可，不需要逐标签扣除。
-            double availLabelW = Math.Max(1, labelW - 2 * margin);
-            double availLabelH = Math.Max(1, labelH - 2 * margin);
-
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < cols; c++)
-                {
-                    var img = new Image
-                    {
-                        Source = renderBitmap,
-                        Width = availLabelW,
-                        Height = availLabelH,
-                        Stretch = Stretch.Uniform
-                    };
-                    RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-
-                    // 整体偏移：可印区原点 + 用户边距 + 该标签在网格中的位置。
-                    double left = originX + c * labelW + margin;
-                    double top = originY + r * labelH + margin;
-
-                    // Mirror print: flip content horizontally
-                    if (Settings.MirrorPrint)
-                    {
-                        img.RenderTransformOrigin = new Point(0.5, 0.5);
-                        img.RenderTransform = new ScaleTransform(-1, 1);
-                    }
-
-                    FixedPage.SetLeft(img, left);
-                    FixedPage.SetTop(img, top);
-                    fixedPage.Children.Add(img);
-
-                    // Draw cut/border lines around each label
-                    if (Settings.ShowCutLines)
-                    {
-                        var border = new System.Windows.Shapes.Rectangle
-                        {
-                            Width = availLabelW,
-                            Height = availLabelH,
-                            Stroke = Brushes.Black,
-                            StrokeThickness = 0.5,
-                            StrokeDashArray = new DoubleCollection { 4, 2 },
-                            Fill = Brushes.Transparent
-                        };
-                        FixedPage.SetLeft(border, left);
-                        FixedPage.SetTop(border, top);
-                        fixedPage.Children.Add(border);
-                    }
-                }
-            }
-
-            // 打印套准（registration / 校准）标志：在可印区四角绘制 L 形黑色短线，
-            // 供后道贴标/分切机识别对齐位置。该设置之前已在 PrintSettings 中定义
-            // 但完全未生效，这里补全实现。
-            if (Settings.EnableRegistrationPrint)
-            {
-                AddRegistrationMarks(fixedPage, originX, originY, extentW, extentH);
-            }
-
-            fixedPage.Measure(new Size(pageW, pageH));
-            fixedPage.Arrange(new Rect(0, 0, pageW, pageH));
-            fixedPage.UpdateLayout();
-
-            var fixedDoc = new FixedDocument();
-            fixedDoc.DocumentPaginator.PageSize = new Size(pageW, pageH);
-            var pageContent = new PageContent { Child = fixedPage };
-            fixedDoc.Pages.Add(pageContent);
-
-            printDialog.PrintDocument(fixedDoc.DocumentPaginator, $"CodePrint - {Document.Name}");
-
-            StatusText = "打印任务已发送";
-            RequestClose?.Invoke(true);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[Print] 打印失败: {ex}");
-            StatusText = $"打印失败: {ex.Message}";
         }
         finally
         {
-            printServer?.Dispose();
+            IsPrinting = false;
+            PrintProgress = -1;
+            _activeCts.Dispose();
+            _activeCts = null;
         }
     }
 
-    /// <summary>
-    /// 在可印区的四个角绘制 L 形套准（registration）标志，便于后道工序对齐。
-    /// 标志长度 5mm、线宽 0.3mm。坐标参数为可印区原点和实际宽高，避免依赖
-    /// 上下/左右边距对称的假设。
-    /// </summary>
-    private static void AddRegistrationMarks(FixedPage fixedPage, double originX, double originY, double extentW, double extentH)
+    private bool CanCancelPrint() => IsPrinting;
+
+    [RelayCommand(CanExecute = nameof(CanCancelPrint))]
+    private void CancelPrint()
     {
-        var mmToDip = DesignConstants.MmToPixel;
-        double markLen = 5.0 * mmToDip;
-        double thickness = 0.3 * mmToDip;
-
-        double x0 = originX;
-        double y0 = originY;
-        double x1 = originX + extentW;
-        double y1 = originY + extentH;
-
-        // 八条短线：每个角两条（横+竖），构成 L 形。
-        var corners = new (double x, double y, double dx, double dy)[]
-        {
-            (x0, y0,  1,  0), (x0, y0,  0,  1), // 左上
-            (x1, y0, -1,  0), (x1, y0,  0,  1), // 右上
-            (x0, y1,  1,  0), (x0, y1,  0, -1), // 左下
-            (x1, y1, -1,  0), (x1, y1,  0, -1), // 右下
-        };
-
-        foreach (var (x, y, dx, dy) in corners)
-        {
-            var line = new System.Windows.Shapes.Line
-            {
-                X1 = x,
-                Y1 = y,
-                X2 = x + dx * markLen,
-                Y2 = y + dy * markLen,
-                Stroke = Brushes.Black,
-                StrokeThickness = thickness,
-                SnapsToDevicePixels = true
-            };
-            fixedPage.Children.Add(line);
-        }
+        if (TryCancelActiveJob())
+            StatusText = "正在取消…";
     }
 
     [RelayCommand]
@@ -310,7 +184,29 @@ public partial class PrintViewModel : ObservableObject
     [RelayCommand]
     private void Cancel()
     {
+        // 关闭对话框前若仍在打印，先尝试取消作业。
+        TryCancelActiveJob();
         RequestClose?.Invoke(false);
+    }
+
+    /// <summary>
+    /// 尝试取消当前活动的打印作业。返回是否真正发起了取消。
+    /// 集中处理 <see cref="ObjectDisposedException"/> 的竞态，避免散落在多处。
+    /// </summary>
+    private bool TryCancelActiveJob()
+    {
+        var cts = _activeCts;
+        if (cts == null) return false;
+        try
+        {
+            cts.Cancel();
+            return true;
+        }
+        catch (ObjectDisposedException)
+        {
+            // 作业已在另一个线程结束并释放了 CTS——忽略
+            return false;
+        }
     }
 
     /// <summary>Persists the current settings to disk so they are restored next time.</summary>
@@ -323,67 +219,4 @@ public partial class PrintViewModel : ObservableObject
 
     /// <summary>常见 DPI 选项。</summary>
     public IReadOnlyList<int> DpiOptions { get; } = PrintConstants.StandardDpiOptions;
-
-    /// <summary>Print resolution in DPI. Uses per-print setting if set, otherwise falls back to global app setting.</summary>
-    private int PrintDpi => Settings.PrintDpi > 0 ? Settings.PrintDpi : AppSettingsService.Current.PrintDpi;
-
-    /// <summary>Renders the label content to a high-DPI bitmap for printing.</summary>
-    private RenderTargetBitmap RenderLabelBitmap()
-    {
-        var mmToPx = DesignConstants.MmToPixel;
-
-        double docWidth = Document!.WidthMm * mmToPx;
-        double docHeight = Document.HeightMm * mmToPx;
-
-        // Prepare label background brush.
-        // 背景色字符串来自文档（用户可编辑），有可能是非法值，必须容错。
-        Brush bgBrush;
-        if (string.IsNullOrEmpty(Document.BackgroundColor) || Document.BackgroundColor == "Transparent")
-        {
-            bgBrush = Brushes.White;
-        }
-        else
-        {
-            try
-            {
-                bgBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Document.BackgroundColor));
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Print] 背景色 '{Document.BackgroundColor}' 解析失败，回退为白色: {ex.Message}");
-                bgBrush = Brushes.White;
-            }
-        }
-
-        // Render label content to a bitmap at high DPI for sharp printing
-        var canvas = new Canvas { Width = docWidth, Height = docHeight, Background = bgBrush };
-        foreach (var element in Document.Elements.OrderBy(e => e.ZIndex))
-        {
-            if (!element.IsVisible) continue;
-            CanvasRendererHelper.RenderElement(canvas, element);
-        }
-
-        // Enable high-quality text rendering for print output
-        // Use Grayscale anti-aliasing instead of ClearType (ClearType is designed for LCD subpixels, not printers)
-        TextOptions.SetTextRenderingMode(canvas, TextRenderingMode.Grayscale);
-        TextOptions.SetTextFormattingMode(canvas, TextFormattingMode.Ideal);
-        TextOptions.SetTextHintingMode(canvas, TextHintingMode.Fixed);
-        RenderOptions.SetBitmapScalingMode(canvas, BitmapScalingMode.HighQuality);
-        canvas.UseLayoutRounding = true;
-        canvas.SnapsToDevicePixels = true;
-
-        canvas.Measure(new Size(docWidth, docHeight));
-        canvas.Arrange(new Rect(0, 0, docWidth, docHeight));
-        canvas.UpdateLayout();
-
-        // Render at high DPI for sharp print output (e.g. 300 DPI instead of 96)
-        double dpiScale = PrintDpi / 96.0;
-        int bitmapWidth = (int)Math.Max(1, docWidth * dpiScale);
-        int bitmapHeight = (int)Math.Max(1, docHeight * dpiScale);
-        var renderBitmap = new RenderTargetBitmap(
-            bitmapWidth, bitmapHeight, PrintDpi, PrintDpi, PixelFormats.Pbgra32);
-        renderBitmap.Render(canvas);
-
-        return renderBitmap;
-    }
 }
