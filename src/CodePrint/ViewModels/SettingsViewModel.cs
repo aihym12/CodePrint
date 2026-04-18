@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CodePrint.Helpers;
 using CodePrint.Models;
 using CodePrint.Services;
 
@@ -20,7 +21,7 @@ public partial class SettingsViewModel : ObservableObject
     private int _printDpi;
 
     /// <summary>常见 DPI 选项。</summary>
-    public IReadOnlyList<int> DpiOptions { get; } = new[] { 150, 203, 300, 600 };
+    public IReadOnlyList<int> DpiOptions { get; } = PrintConstants.StandardDpiOptions;
 
     // ── 默认标签尺寸 ──
     [ObservableProperty]

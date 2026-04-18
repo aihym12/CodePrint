@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Printing;
 using System.Windows;
+using CodePrint.Helpers;
 
 namespace CodePrint.Views.Dialogs;
 
@@ -24,8 +25,8 @@ public partial class PdfPrintDialog : Window
 
     public ObservableCollection<string> Printers { get; } = new();
 
-    /// <summary>常见 DPI 选项。</summary>
-    public IReadOnlyList<int> DpiOptions { get; } = new[] { 0, 150, 203, 300, 600 };
+    /// <summary>常见 DPI 选项（包含 0 = 使用默认值）。</summary>
+    public IReadOnlyList<int> DpiOptions { get; } = PrintConstants.DpiOptionsWithDefault;
 
     public string? SelectedPrinter
     {
@@ -62,8 +63,10 @@ public partial class PdfPrintDialog : Window
                 Printers.Add(queue.Name);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            // 受限环境下回退到虚拟打印机；记录原因方便排查。
+            System.Diagnostics.Debug.WriteLine($"[PdfPrintDialog] 枚举打印机失败: {ex.Message}");
             Printers.Add("Microsoft Print to PDF");
         }
 
