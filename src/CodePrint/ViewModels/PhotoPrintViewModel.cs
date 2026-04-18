@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CodePrint.Helpers;
 
 namespace CodePrint.ViewModels;
 
@@ -65,7 +66,7 @@ public partial class PhotoPrintViewModel : ObservableObject
     private int _printDpi = 300;
 
     /// <summary>常见 DPI 选项。</summary>
-    public IReadOnlyList<int> DpiOptions { get; } = new[] { 150, 203, 300, 600 };
+    public IReadOnlyList<int> DpiOptions { get; } = PrintConstants.StandardDpiOptions;
 
     [RelayCommand]
     private void RemovePhoto()
@@ -128,28 +129,69 @@ public partial class PhotoPrintViewModel : ObservableObject
             var pageWidth = printDialog.PrintableAreaWidth;
             var pageHeight = printDialog.PrintableAreaHeight;
 
+            int printedCount = 0;
+            int skippedCount = 0;
+
             foreach (var photo in Photos)
             {
+                BitmapImage? bitmap = TryLoadBitmap(photo);
+                if (bitmap == null)
+                {
+                    // 图片加载失败时直接跳过：不能把"无法加载图片"作为
+                    // 正常一页送进打印机，否则会浪费纸张和耗材。
+                    skippedCount++;
+                    continue;
+                }
+
                 for (int copy = 0; copy < photo.Copies; copy++)
                 {
                     try
                     {
-                        var visual = RenderPhotoVisual(photo, pageWidth, pageHeight);
+                        var visual = RenderPhotoVisual(photo, bitmap, pageWidth, pageHeight);
                         printDialog.PrintVisual(visual, $"CodePrint Photo - {photo.FileName}");
+                        printedCount++;
                     }
                     catch (Exception ex)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[PhotoPrint] 打印 {photo.FileName} 失败: {ex}");
                         StatusText = $"打印 {photo.FileName} 失败: {ex.Message}";
                         return;
                     }
                 }
             }
 
-            StatusText = "打印任务已发送";
+            if (skippedCount == 0)
+                StatusText = $"打印任务已发送（{printedCount} 张）";
+            else
+                StatusText = $"打印任务已发送（{printedCount} 张），{skippedCount} 张图片加载失败已跳过";
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PhotoPrint] 打印失败: {ex}");
             StatusText = $"打印失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 尝试从 <see cref="PhotoItem.FilePath"/> 加载位图；失败时返回 null。
+    /// </summary>
+    private static BitmapImage? TryLoadBitmap(PhotoItem photo)
+    {
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(photo.FilePath, UriKind.Absolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PhotoPrint] 加载图片失败 '{photo.FilePath}': {ex.Message}");
+            return null;
         }
     }
 
@@ -165,41 +207,17 @@ public partial class PhotoPrintViewModel : ObservableObject
         StatusText = $"已添加 {Photos.Count} 张图片";
     }
 
-    /// <summary>Renders a single photo item into a print visual at the specified DPI.</summary>
-    private DrawingVisual RenderPhotoVisual(PhotoItem photo, double pageWidth, double pageHeight)
+    /// <summary>
+    /// 把单张照片渲染为可打印的 Visual。位图由调用方预先加载并传入，
+    /// 这样图片加载失败可以由 <see cref="Print"/> 统一跳过该项，而不是在这里
+    /// 静默地把"无法加载图片"作为一页打出来。
+    /// </summary>
+    private DrawingVisual RenderPhotoVisual(PhotoItem photo, BitmapImage bitmap, double pageWidth, double pageHeight)
     {
         var visual = new DrawingVisual();
 
         // Set high-quality rendering hints for sharp print output
         RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
-
-        // Load the image at high DPI for sharp print output
-        BitmapImage bitmap;
-        try
-        {
-            bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(photo.FilePath, UriKind.Absolute);
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
-            bitmap.EndInit();
-            bitmap.Freeze();
-        }
-        catch
-        {
-            // Image file may be corrupted or unsupported; show a placeholder message instead
-            using (var dc = visual.RenderOpen())
-            {
-                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, pageWidth, pageHeight));
-                var errorText = new FormattedText(
-                    $"无法加载图片: {photo.FileName}",
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface("Microsoft YaHei"), 14, Brushes.Red, 96);
-                dc.DrawText(errorText, new Point(20, pageHeight / 2));
-            }
-            return visual;
-        }
 
         // Create a canvas with the image and apply transformations
         var canvas = new Canvas { Width = pageWidth, Height = pageHeight };
@@ -270,8 +288,8 @@ public partial class PhotoPrintViewModel : ObservableObject
         canvas.UpdateLayout();
 
         // Render at specified DPI for sharp print output
-        int dpi = PrintDpi > 0 ? PrintDpi : 96;
-        double dpiScale = dpi / 96.0;
+        int dpi = PrintDpi > 0 ? PrintDpi : (int)PrintConstants.WpfDpi;
+        double dpiScale = dpi / PrintConstants.WpfDpi;
         int bitmapWidth = (int)Math.Max(1, pageWidth * dpiScale);
         int bitmapHeight = (int)Math.Max(1, pageHeight * dpiScale);
         var renderBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(

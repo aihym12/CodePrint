@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using CodePrint.Models;
@@ -31,9 +32,10 @@ public static class PrintSettingsService
                 return JsonSerializer.Deserialize<PrintSettings>(json, JsonOptions) ?? new PrintSettings();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 文件损坏——返回默认值
+            // 文件损坏——返回默认值，但要记录原因便于排查。
+            Debug.WriteLine($"[PrintSettings] 读取失败，使用默认值: {ex.Message}");
         }
         return new PrintSettings();
     }
@@ -46,9 +48,10 @@ public static class PrintSettingsService
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             File.WriteAllText(SettingsFile, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略写入失败（权限、磁盘满等）
+            // 写入失败（权限不足、磁盘满等）——记录日志，避免静默丢失用户配置。
+            Debug.WriteLine($"[PrintSettings] 保存失败: {ex.Message}");
         }
     }
 }
