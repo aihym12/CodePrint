@@ -36,9 +36,8 @@ public partial class CanvasPanel : UserControl
     // Selection adorner rectangles
     private readonly List<Rectangle> _selectionHandles = new();
 
-    // Inline editing state
-    private TextBox? _inlineEditor;
-    private LabelElement? _editingElement;
+    // Inline editing state (industrial-quality editor with its own state machine).
+    private readonly InlineTextEditor _inlineTextEditor = new();
 
     // Rubber band (marquee) selection state (works with both left-click on blank area and right-click)
     private bool _isRubberBandSelecting;
@@ -52,6 +51,10 @@ public partial class CanvasPanel : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+
+        // Allow the canvas panel to receive keyboard focus so F2 / Enter shortcuts work.
+        Focusable = true;
+        FocusVisualStyle = null;
     }
 
     private MainViewModel? ViewModel => DataContext as MainViewModel;
@@ -225,6 +228,13 @@ public partial class CanvasPanel : UserControl
                 break;
 
             default:
+                // While the inline editor has the element, suppress full visual rebuilds.
+                // The editor itself mirrors style changes onto its own TextBox; rebuilding
+                // the canvas visual here would collapse-then-recreate it and visually
+                // clobber the overlaid TextBox.
+                if (_inlineTextEditor.IsEditing && _inlineTextEditor.EditingElement == element)
+                    break;
+
                 // For all other properties (content, font, colors, size, rotation, etc.)
                 // do a full re-render of the element visual
                 RefreshElementVisual(element);
@@ -251,8 +261,11 @@ public partial class CanvasPanel : UserControl
         var element = ViewModel.CurrentDocument.Elements.FirstOrDefault(el => el.Id == elementId);
         if (element == null) return;
 
+        // Grab keyboard focus so F2 / Enter shortcuts work after the element is selected.
+        Focus();
+
         // Commit any active inline editing when clicking on a different element
-        if (_editingElement != null && _editingElement.Id != element.Id)
+        if (_inlineTextEditor.IsEditing && _inlineTextEditor.EditingElement?.Id != element.Id)
         {
             CommitInlineEditing();
         }
@@ -748,119 +761,42 @@ public partial class CanvasPanel : UserControl
         }
     }
 
-    // ── Inline Text Editing ──
+    // ── Inline Text Editing (delegates to InlineTextEditor state machine) ──
 
     private void StartInlineEditing(TextElement textElement)
     {
-        // If already editing, commit first
-        CommitInlineEditing();
+        // Reset any in-flight mouse gestures so entering edit mode from a double-click
+        // doesn't leave the canvas in a half-dragging / half-selecting state.
+        _isDragging = false;
+        _isResizing = false;
+        _resizeHandleIndex = -1;
+        _multiDragStartPositions.Clear();
 
-        _editingElement = textElement;
-
-        // Find and hide the element visual
-        if (!_elementVisuals.TryGetValue(textElement.Id, out var visual)) return;
-        visual.Visibility = Visibility.Collapsed;
-
-        // Create an editable TextBox overlay at the same position
-        _inlineEditor = new TextBox
+        if (_isRubberBandSelecting)
         {
-            Text = textElement.Content,
-            FontFamily = new FontFamily(textElement.FontFamily),
-            FontSize = textElement.FontSize,
-            FontWeight = textElement.IsBold ? FontWeights.Bold : FontWeights.Normal,
-            FontStyle = textElement.IsItalic ? FontStyles.Italic : FontStyles.Normal,
-            Foreground = BrushFromHex(textElement.ForegroundColor),
-            Background = textElement.BackgroundColor == "Transparent"
-                ? Brushes.Transparent
-                : BrushFromHex(textElement.BackgroundColor),
-            Width = textElement.Width * MmToPx,
-            MinHeight = textElement.Height * MmToPx,
-            AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4A90D9")),
-            Padding = new Thickness(2),
-            VerticalContentAlignment = VerticalAlignment.Top
-        };
-
-        Canvas.SetLeft(_inlineEditor, textElement.X * MmToPx);
-        Canvas.SetTop(_inlineEditor, textElement.Y * MmToPx);
-        Panel.SetZIndex(_inlineEditor, int.MaxValue - 1);
-
-        _inlineEditor.LostFocus += InlineEditor_LostFocus;
-        _inlineEditor.KeyDown += InlineEditor_KeyDown;
-
-        DesignCanvas.Children.Add(_inlineEditor);
-
-        // Focus and select all text
-        _inlineEditor.Focus();
-        _inlineEditor.SelectAll();
-    }
-
-    private void InlineEditor_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape)
-        {
-            // Cancel editing (discard changes)
-            CancelInlineEditing();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-        {
-            // Commit editing on Enter (Shift+Enter for newline)
-            CommitInlineEditing();
-            e.Handled = true;
-        }
-    }
-
-    private void InlineEditor_LostFocus(object sender, RoutedEventArgs e)
-    {
-        CommitInlineEditing();
-    }
-
-    private void CommitInlineEditing()
-    {
-        if (_inlineEditor == null || _editingElement is not TextElement textEl) return;
-
-        // Save the text back to the element model
-        var newText = _inlineEditor.Text;
-        if (!string.IsNullOrEmpty(newText))
-        {
-            textEl.Content = newText;
+            FinishRubberBand();
         }
 
-        CleanupInlineEditor();
+        if (DesignCanvas.IsMouseCaptured) DesignCanvas.ReleaseMouseCapture();
+        if (Mouse.Captured is UIElement captured) captured.ReleaseMouseCapture();
 
-        // Re-render the element visual with updated text
-        RefreshElementVisual(textEl);
+        _elementVisuals.TryGetValue(textElement.Id, out var visual);
+        _inlineTextEditor.Begin(
+            textElement,
+            DesignCanvas,
+            visual,
+            ViewModel?.UndoRedoService,
+            caretIndex: null);
     }
 
-    private void CancelInlineEditing()
-    {
-        if (_inlineEditor == null || _editingElement == null) return;
+    /// <summary>
+    /// Commits the active inline edit if any. No-op when not editing.
+    /// Kept as an instance method for the many existing call sites that flush edits
+    /// before other canvas operations (clicks, drops, right-click, etc.).
+    /// </summary>
+    private void CommitInlineEditing() => _inlineTextEditor.Commit();
 
-        CleanupInlineEditor();
-
-        // Show the original visual again without changes
-        if (_elementVisuals.TryGetValue(_editingElement.Id, out var visual))
-        {
-            visual.Visibility = Visibility.Visible;
-        }
-
-        _editingElement = null;
-    }
-
-    private void CleanupInlineEditor()
-    {
-        if (_inlineEditor != null)
-        {
-            _inlineEditor.LostFocus -= InlineEditor_LostFocus;
-            _inlineEditor.KeyDown -= InlineEditor_KeyDown;
-            DesignCanvas.Children.Remove(_inlineEditor);
-            _inlineEditor = null;
-        }
-        _editingElement = null;
-    }
+    private void CancelInlineEditing() => _inlineTextEditor.Cancel();
 
     private void RefreshElementVisual(LabelElement element)
     {
@@ -999,6 +935,9 @@ public partial class CanvasPanel : UserControl
         var element = ViewModel.SelectedElement;
         if (element.IsLocked) return;
 
+        // Commit any in-progress inline edit before resizing so the model is consistent.
+        CommitInlineEditing();
+
         _isResizing = true;
         _resizeHandleIndex = handleIndex;
         _resizeStart = e.GetPosition(DesignCanvas);
@@ -1020,5 +959,29 @@ public partial class CanvasPanel : UserControl
             DesignCanvas.Children.Remove(handle);
         }
         _selectionHandles.Clear();
+    }
+
+    /// <summary>
+    /// Keyboard shortcuts — F2 or Enter on a selected text element enters inline editing,
+    /// matching the convention of common industrial label-design tools.
+    /// </summary>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+
+        // Don't steal keys while the inline editor is active — it has its own handler.
+        if (_inlineTextEditor.IsEditing) return;
+
+        if (ViewModel?.SelectedElement is not TextElement textEl) return;
+        if (textEl.IsLocked) return;
+
+        // Ignore if the user is typing in another control (e.g. a property panel textbox).
+        if (Keyboard.FocusedElement is TextBox) return;
+
+        if (e.Key == Key.F2 || e.Key == Key.Enter)
+        {
+            StartInlineEditing(textEl);
+            e.Handled = true;
+        }
     }
 }
